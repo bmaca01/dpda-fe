@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Check if CLAUDE.md or .claude/ are in the staged files
+if git diff --name-only origin/main...HEAD | grep -qE '^(CLAUDE\.md|\.claude/)'; then
+    echo "Error: CLAUDE.md or .claude/ should not be pushed to GitHub."
+    echo "These files are for local Claude Code use only."
+    exit 1
+fi
+
+# Run tests before push
+npm run test:unit:ci
+

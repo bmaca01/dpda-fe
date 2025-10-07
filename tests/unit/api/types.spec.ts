@@ -10,6 +10,12 @@ import type {
   ValidationResponse,
   DPDAInfoResponse,
   ListDPDAsResponse,
+  UpdateDPDARequest,
+  UpdateStatesRequest,
+  UpdateAlphabetsRequest,
+  UpdateTransitionRequest,
+  UpdateDPDAResponse,
+  UpdateTransitionResponse,
 } from '@/api/types'
 
 describe('API Types', () => {
@@ -233,6 +239,194 @@ describe('API Types', () => {
       expect(response.dpdas).toHaveLength(2)
       expect(response.dpdas[0].id).toBe('1')
       expect(response.total).toBe(2)
+    })
+  })
+
+  describe('UpdateDPDARequest', () => {
+    it('should allow updating only name', () => {
+      const request: UpdateDPDARequest = {
+        name: 'Updated Name',
+      }
+      expect(request.name).toBe('Updated Name')
+      expect(request.description).toBeUndefined()
+    })
+
+    it('should allow updating only description', () => {
+      const request: UpdateDPDARequest = {
+        description: 'Updated description',
+      }
+      expect(request.description).toBe('Updated description')
+      expect(request.name).toBeUndefined()
+    })
+
+    it('should allow updating both name and description', () => {
+      const request: UpdateDPDARequest = {
+        name: 'New Name',
+        description: 'New description',
+      }
+      expect(request.name).toBe('New Name')
+      expect(request.description).toBe('New description')
+    })
+  })
+
+  describe('UpdateStatesRequest', () => {
+    it('should allow updating only states', () => {
+      const request: UpdateStatesRequest = {
+        states: ['s0', 's1'],
+      }
+      expect(request.states).toEqual(['s0', 's1'])
+      expect(request.initial_state).toBeUndefined()
+      expect(request.accept_states).toBeUndefined()
+    })
+
+    it('should allow updating only initial_state', () => {
+      const request: UpdateStatesRequest = {
+        initial_state: 's1',
+      }
+      expect(request.initial_state).toBe('s1')
+      expect(request.states).toBeUndefined()
+    })
+
+    it('should allow updating only accept_states', () => {
+      const request: UpdateStatesRequest = {
+        accept_states: ['s2', 's3'],
+      }
+      expect(request.accept_states).toEqual(['s2', 's3'])
+      expect(request.states).toBeUndefined()
+    })
+
+    it('should allow updating all fields', () => {
+      const request: UpdateStatesRequest = {
+        states: ['q0', 'q1', 'q2'],
+        initial_state: 'q0',
+        accept_states: ['q2'],
+      }
+      expect(request.states).toEqual(['q0', 'q1', 'q2'])
+      expect(request.initial_state).toBe('q0')
+      expect(request.accept_states).toEqual(['q2'])
+    })
+  })
+
+  describe('UpdateAlphabetsRequest', () => {
+    it('should allow updating only input_alphabet', () => {
+      const request: UpdateAlphabetsRequest = {
+        input_alphabet: ['a', 'b', 'c'],
+      }
+      expect(request.input_alphabet).toEqual(['a', 'b', 'c'])
+      expect(request.stack_alphabet).toBeUndefined()
+      expect(request.initial_stack_symbol).toBeUndefined()
+    })
+
+    it('should allow updating only stack_alphabet', () => {
+      const request: UpdateAlphabetsRequest = {
+        stack_alphabet: ['$', 'X', 'Y'],
+      }
+      expect(request.stack_alphabet).toEqual(['$', 'X', 'Y'])
+      expect(request.input_alphabet).toBeUndefined()
+    })
+
+    it('should allow updating only initial_stack_symbol', () => {
+      const request: UpdateAlphabetsRequest = {
+        initial_stack_symbol: 'Z',
+      }
+      expect(request.initial_stack_symbol).toBe('Z')
+      expect(request.input_alphabet).toBeUndefined()
+    })
+
+    it('should allow updating all fields', () => {
+      const request: UpdateAlphabetsRequest = {
+        input_alphabet: ['0', '1'],
+        stack_alphabet: ['$', 'A'],
+        initial_stack_symbol: '$',
+      }
+      expect(request.input_alphabet).toEqual(['0', '1'])
+      expect(request.stack_alphabet).toEqual(['$', 'A'])
+      expect(request.initial_stack_symbol).toBe('$')
+    })
+  })
+
+  describe('UpdateTransitionRequest', () => {
+    it('should allow updating only to_state', () => {
+      const request: UpdateTransitionRequest = {
+        to_state: 'q2',
+      }
+      expect(request.to_state).toBe('q2')
+      expect(request.from_state).toBeUndefined()
+      expect(request.input_symbol).toBeUndefined()
+      expect(request.stack_top).toBeUndefined()
+      expect(request.stack_push).toBeUndefined()
+    })
+
+    it('should allow updating only stack_push', () => {
+      const request: UpdateTransitionRequest = {
+        stack_push: ['X', 'Y', 'Z'],
+      }
+      expect(request.stack_push).toEqual(['X', 'Y', 'Z'])
+      expect(request.to_state).toBeUndefined()
+    })
+
+    it('should allow updating multiple fields', () => {
+      const request: UpdateTransitionRequest = {
+        to_state: 'q3',
+        input_symbol: '1',
+        stack_push: ['A', '$'],
+      }
+      expect(request.to_state).toBe('q3')
+      expect(request.input_symbol).toBe('1')
+      expect(request.stack_push).toEqual(['A', '$'])
+    })
+
+    it('should allow updating to epsilon values', () => {
+      const request: UpdateTransitionRequest = {
+        input_symbol: null,
+        stack_top: null,
+        stack_push: [],
+      }
+      expect(request.input_symbol).toBeNull()
+      expect(request.stack_top).toBeNull()
+      expect(request.stack_push).toEqual([])
+    })
+  })
+
+  describe('UpdateDPDAResponse', () => {
+    it('should have changes object', () => {
+      const response: UpdateDPDAResponse = {
+        changes: {
+          name: 'Updated Name',
+          description: 'Updated Description',
+        },
+      }
+      expect(response.changes).toHaveProperty('name')
+      expect(response.changes).toHaveProperty('description')
+      expect(response.changes.name).toBe('Updated Name')
+    })
+
+    it('should allow empty changes', () => {
+      const response: UpdateDPDAResponse = {
+        changes: {},
+      }
+      expect(response.changes).toEqual({})
+    })
+  })
+
+  describe('UpdateTransitionResponse', () => {
+    it('should have changes object', () => {
+      const response: UpdateTransitionResponse = {
+        changes: {
+          to_state: 'q2',
+          stack_push: ['X', 'Y'],
+        },
+      }
+      expect(response.changes).toHaveProperty('to_state')
+      expect(response.changes).toHaveProperty('stack_push')
+      expect(response.changes.to_state).toBe('q2')
+    })
+
+    it('should allow empty changes', () => {
+      const response: UpdateTransitionResponse = {
+        changes: {},
+      }
+      expect(response.changes).toEqual({})
     })
   })
 })

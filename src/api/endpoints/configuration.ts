@@ -4,7 +4,14 @@
  */
 
 import apiClient from '@/api/client'
-import type { SetStatesRequest, SetAlphabetsRequest, SuccessResponse } from '@/api/types'
+import type {
+  SetStatesRequest,
+  SetAlphabetsRequest,
+  UpdateStatesRequest,
+  UpdateAlphabetsRequest,
+  SuccessResponse,
+  UpdateDPDAResponse,
+} from '@/api/types'
 
 /**
  * Set states for a DPDA
@@ -28,5 +35,65 @@ export async function setAlphabets(
   request: SetAlphabetsRequest
 ): Promise<SuccessResponse> {
   const { data } = await apiClient.post<SuccessResponse>(`/api/dpda/${id}/alphabets`, request)
+  return data
+}
+
+/**
+ * Update states with full replacement (PUT)
+ * Requires all fields - replaces entire states configuration
+ * @param id - The DPDA ID
+ * @param request - Complete states configuration
+ * @returns Success response
+ */
+export async function updateStatesFull(
+  id: string,
+  request: SetStatesRequest
+): Promise<SuccessResponse> {
+  const { data} = await apiClient.put<SuccessResponse>(`/api/dpda/${id}/states`, request)
+  return data
+}
+
+/**
+ * Update states partially (PATCH)
+ * Only provided fields are updated - other fields remain unchanged
+ * @param id - The DPDA ID
+ * @param request - Partial states update with optional fields
+ * @returns Response with changes made
+ */
+export async function updateStatesPartial(
+  id: string,
+  request: UpdateStatesRequest
+): Promise<UpdateDPDAResponse> {
+  const { data } = await apiClient.patch<UpdateDPDAResponse>(`/api/dpda/${id}/states`, request)
+  return data
+}
+
+/**
+ * Update alphabets with full replacement (PUT)
+ * Requires all fields - replaces entire alphabets configuration
+ * @param id - The DPDA ID
+ * @param request - Complete alphabets configuration
+ * @returns Success response
+ */
+export async function updateAlphabetsFull(
+  id: string,
+  request: SetAlphabetsRequest
+): Promise<SuccessResponse> {
+  const { data } = await apiClient.put<SuccessResponse>(`/api/dpda/${id}/alphabets`, request)
+  return data
+}
+
+/**
+ * Update alphabets partially (PATCH)
+ * Only provided fields are updated - other fields remain unchanged
+ * @param id - The DPDA ID
+ * @param request - Partial alphabets update with optional fields
+ * @returns Response with changes made
+ */
+export async function updateAlphabetsPartial(
+  id: string,
+  request: UpdateAlphabetsRequest
+): Promise<UpdateDPDAResponse> {
+  const { data } = await apiClient.patch<UpdateDPDAResponse>(`/api/dpda/${id}/alphabets`, request)
   return data
 }

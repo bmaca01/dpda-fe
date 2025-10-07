@@ -4,7 +4,13 @@
  */
 
 import apiClient from '@/api/client'
-import type { AddTransitionRequest, SuccessResponse, DeleteTransitionResponse } from '@/api/types'
+import type {
+  AddTransitionRequest,
+  UpdateTransitionRequest,
+  SuccessResponse,
+  DeleteTransitionResponse,
+  UpdateTransitionResponse,
+} from '@/api/types'
 
 /**
  * Response type for getting transitions
@@ -58,5 +64,26 @@ export async function deleteTransition(
  */
 export async function getTransitions(id: string): Promise<TransitionsResponse> {
   const { data } = await apiClient.get<TransitionsResponse>(`/api/dpda/${id}/transitions`)
+  return data
+}
+
+/**
+ * Update a specific transition by index
+ * Uses PUT for partial updates - only provided fields are updated
+ * WARNING: Index-based update is fragile - always refetch transitions after update
+ * @param id - The DPDA ID
+ * @param index - The transition index to update
+ * @param request - Partial transition update with optional fields
+ * @returns Response with changes made
+ */
+export async function updateTransition(
+  id: string,
+  index: number,
+  request: UpdateTransitionRequest
+): Promise<UpdateTransitionResponse> {
+  const { data } = await apiClient.put<UpdateTransitionResponse>(
+    `/api/dpda/${id}/transition/${index}`,
+    request
+  )
   return data
 }

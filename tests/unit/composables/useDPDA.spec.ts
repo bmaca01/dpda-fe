@@ -18,6 +18,7 @@ vi.mock('@/api/endpoints/dpda', () => ({
   listDPDAs: vi.fn(),
   getDPDA: vi.fn(),
   deleteDPDA: vi.fn(),
+  updateDPDA: vi.fn(),
 }))
 
 describe('useDPDA Composable', () => {
@@ -25,8 +26,8 @@ describe('useDPDA Composable', () => {
     vi.clearAllMocks()
   })
 
-  describe('useCreateDPDA', () => {
-    it('should create a mutation for creating DPDA', () => {
+  describe('createMutation', () => {
+    it('should return a mutation for creating DPDA', () => {
       const mockMutate = vi.fn()
       const mockMutation = {
         mutate: mockMutate,
@@ -40,17 +41,16 @@ describe('useDPDA Composable', () => {
 
       vi.mocked(useMutation).mockReturnValue(mockMutation as any)
 
-      const { useCreateDPDA } = useDPDA()
-      const result = useCreateDPDA()
+      const { createMutation } = useDPDA()
 
       expect(useMutation).toHaveBeenCalled()
-      expect(result.mutate).toBe(mockMutate)
-      expect(result.isPending).toBe(false)
+      expect(createMutation.mutate).toBe(mockMutate)
+      expect(createMutation.isPending).toBe(false)
     })
   })
 
-  describe('useListDPDAs', () => {
-    it('should create a query for listing DPDAs', () => {
+  describe('listQuery', () => {
+    it('should return a query for listing DPDAs', () => {
       const mockData = {
         dpdas: [
           { id: '1', name: 'DPDA 1', is_valid: true },
@@ -69,21 +69,20 @@ describe('useDPDA Composable', () => {
 
       vi.mocked(useQuery).mockReturnValue(mockQuery as any)
 
-      const { useListDPDAs } = useDPDA()
-      const result = useListDPDAs()
+      const { listQuery } = useDPDA()
 
       expect(useQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryKey: ['dpdas'],
         })
       )
-      expect(result.data).toEqual(mockData)
-      expect(result.isLoading).toBe(false)
+      expect(listQuery.data).toEqual(mockData)
+      expect(listQuery.isLoading).toBe(false)
     })
   })
 
-  describe('useGetDPDA', () => {
-    it('should create a query for getting a specific DPDA', () => {
+  describe('getQuery', () => {
+    it('should return a query for getting a specific DPDA', () => {
       const mockData = {
         id: '123',
         name: 'Test DPDA',
@@ -100,15 +99,14 @@ describe('useDPDA Composable', () => {
 
       vi.mocked(useQuery).mockReturnValue(mockQuery as any)
 
-      const { useGetDPDA } = useDPDA()
-      const result = useGetDPDA('123')
+      const { getQuery } = useDPDA('123')
 
       expect(useQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryKey: ['dpda', '123'],
         })
       )
-      expect(result.data).toEqual(mockData)
+      expect(getQuery.data).toEqual(mockData)
     })
 
     it('should not fetch if ID is not provided', () => {
@@ -121,8 +119,7 @@ describe('useDPDA Composable', () => {
 
       vi.mocked(useQuery).mockReturnValue(mockQuery as any)
 
-      const { useGetDPDA } = useDPDA()
-      const result = useGetDPDA(undefined)
+      const { getQuery } = useDPDA(undefined)
 
       expect(useQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -130,12 +127,12 @@ describe('useDPDA Composable', () => {
           enabled: false,
         })
       )
-      expect(result.data).toBeUndefined()
+      expect(getQuery.data).toBeUndefined()
     })
   })
 
-  describe('useDeleteDPDA', () => {
-    it('should create a mutation for deleting DPDA', () => {
+  describe('deleteMutation', () => {
+    it('should return a mutation for deleting DPDA', () => {
       const mockMutate = vi.fn()
       const mockMutation = {
         mutate: mockMutate,
@@ -147,11 +144,10 @@ describe('useDPDA Composable', () => {
 
       vi.mocked(useMutation).mockReturnValue(mockMutation as any)
 
-      const { useDeleteDPDA } = useDPDA()
-      const result = useDeleteDPDA()
+      const { deleteMutation } = useDPDA()
 
       expect(useMutation).toHaveBeenCalled()
-      expect(result.mutate).toBe(mockMutate)
+      expect(deleteMutation.mutate).toBe(mockMutate)
 
       // Check that the mutation config includes invalidation
       const mutationConfig = vi.mocked(useMutation).mock.calls[0][0]
@@ -172,8 +168,8 @@ describe('useDPDA Composable', () => {
         } as any
       })
 
-      const { useCreateDPDA } = useDPDA()
-      useCreateDPDA()
+      const { createMutation } = useDPDA()
+      void createMutation
 
       expect(onSuccessCallback).toBeDefined()
     })
@@ -188,11 +184,46 @@ describe('useDPDA Composable', () => {
         } as any
       })
 
-      const { useDeleteDPDA } = useDPDA()
-      useDeleteDPDA()
+      const { deleteMutation } = useDPDA()
+      void deleteMutation
 
       // This test verifies the mutation is set up correctly
       // Optimistic updates are optional based on implementation
+    })
+  })
+
+  describe('updateMutation', () => {
+    it('should return a mutation for updating DPDA metadata', () => {
+      const mockMutate = vi.fn()
+      const mockMutation = {
+        mutate: mockMutate,
+        mutateAsync: vi.fn(),
+        isPending: false,
+      }
+
+      vi.mocked(useMutation).mockReturnValue(mockMutation as any)
+
+      const { updateMutation } = useDPDA()
+
+      expect(useMutation).toHaveBeenCalled()
+      expect(updateMutation.mutate).toBe(mockMutate)
+    })
+
+    it('should invalidate dpda and dpdas queries on success', () => {
+      // Unused variable removed
+      vi.mocked(useMutation).mockImplementation(() => {
+        return {
+          mutate: vi.fn(),
+          mutateAsync: vi.fn(),
+          isPending: false,
+        } as any
+      })
+
+      const { updateMutation } = useDPDA('test-123')
+      void updateMutation
+
+      const mutationConfig: any = vi.mocked(useMutation).mock.calls[0][0]
+      expect(mutationConfig).toHaveProperty('onSuccess')
     })
   })
 })

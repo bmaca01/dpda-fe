@@ -55,6 +55,47 @@ export interface ComputeRequest {
   show_trace?: boolean // Default: false
 }
 
+/**
+ * Request to update DPDA metadata (PATCH)
+ * All fields are optional - only provided fields will be updated
+ */
+export interface UpdateDPDARequest {
+  name?: string
+  description?: string
+}
+
+/**
+ * Request to update states (PATCH)
+ * All fields are optional - only provided fields will be updated
+ */
+export interface UpdateStatesRequest {
+  states?: string[]
+  initial_state?: string
+  accept_states?: string[]
+}
+
+/**
+ * Request to update alphabets (PATCH)
+ * All fields are optional - only provided fields will be updated
+ */
+export interface UpdateAlphabetsRequest {
+  input_alphabet?: string[]
+  stack_alphabet?: string[]
+  initial_stack_symbol?: string
+}
+
+/**
+ * Request to update a transition (PUT)
+ * All fields are optional - only provided fields will be updated
+ */
+export interface UpdateTransitionRequest {
+  from_state?: string
+  input_symbol?: string | null // null for epsilon
+  stack_top?: string | null // null for epsilon
+  to_state?: string
+  stack_push?: string[] // Ordered list
+}
+
 // ============================================================================
 // Response Types
 // ============================================================================
@@ -173,4 +214,20 @@ export interface ErrorResponse {
   error: string
   detail?: string
   status_code: number
+}
+
+/**
+ * Response after updating DPDA metadata (PATCH)
+ * Returns object showing which fields were changed
+ */
+export interface UpdateDPDAResponse {
+  changes: Record<string, any>
+}
+
+/**
+ * Response after updating a transition (PUT)
+ * Returns object showing which fields were changed
+ */
+export interface UpdateTransitionResponse {
+  changes: Record<string, any>
 }

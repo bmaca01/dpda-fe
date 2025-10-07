@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import {
-  computeString,
-  validateDPDA,
-  exportDPDA,
-  visualizeDPDA,
-} from '@/api/endpoints/operations'
+import { computeString, validateDPDA, exportDPDA, visualizeDPDA } from '@/api/endpoints/operations'
 import type {
   ComputeRequest,
   ComputeResponse,
@@ -200,13 +195,11 @@ describe('Operation API Endpoints', () => {
         violations: [
           {
             type: 'non-deterministic',
-            description:
-              'Multiple transitions from state q0 on input 0 with stack top $',
+            description: 'Multiple transitions from state q0 on input 0 with stack top $',
           },
           {
             type: 'non-deterministic',
-            description:
-              'Multiple epsilon transitions from state q1 with stack top A',
+            description: 'Multiple epsilon transitions from state q1 with stack top A',
           },
         ],
         message: 'DPDA has 2 determinism violations',

@@ -4,6 +4,4 @@
 
 import { defineStore } from 'pinia'
 
-export const useDPDAStore = defineStore('dpda', {
-  
-});
+export const useDPDAStore = defineStore('dpda', {})

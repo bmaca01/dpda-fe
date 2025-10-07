@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createDPDASchema,
+  updateDPDASchema,
   stateConfigSchema,
   alphabetConfigSchema,
   transitionSchema,
@@ -52,6 +53,70 @@ describe('DPDA Validation Schemas', () => {
 
       const result = createDPDASchema.safeParse(invalid)
       expect(result.success).toBe(false)
+    })
+  })
+
+  describe('updateDPDASchema', () => {
+    it('should validate update with name only', () => {
+      const valid = {
+        name: 'Updated Name',
+      }
+
+      const result = updateDPDASchema.safeParse(valid)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.name).toBe('Updated Name')
+        expect(result.data.description).toBeUndefined()
+      }
+    })
+
+    it('should validate update with description only', () => {
+      const valid = {
+        description: 'Updated Description',
+      }
+
+      const result = updateDPDASchema.safeParse(valid)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.name).toBeUndefined()
+        expect(result.data.description).toBe('Updated Description')
+      }
+    })
+
+    it('should validate update with both name and description', () => {
+      const valid = {
+        name: 'New Name',
+        description: 'New Description',
+      }
+
+      const result = updateDPDASchema.safeParse(valid)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.name).toBe('New Name')
+        expect(result.data.description).toBe('New Description')
+      }
+    })
+
+    it('should fail when no fields are provided', () => {
+      const invalid = {}
+
+      const result = updateDPDASchema.safeParse(invalid)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('At least one field must be provided')
+      }
+    })
+
+    it('should fail when name is empty string', () => {
+      const invalid = {
+        name: '',
+      }
+
+      const result = updateDPDASchema.safeParse(invalid)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('at least 1 character')
+      }
     })
   })
 
@@ -150,7 +215,9 @@ describe('DPDA Validation Schemas', () => {
       const result = alphabetConfigSchema.safeParse(invalid)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Initial stack symbol must be in stack alphabet')
+        expect(result.error.issues[0].message).toContain(
+          'Initial stack symbol must be in stack alphabet'
+        )
       }
     })
 

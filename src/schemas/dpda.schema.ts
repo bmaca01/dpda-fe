@@ -16,6 +16,21 @@ export const createDPDASchema = z.object({
 export type CreateDPDAFormData = z.infer<typeof createDPDASchema>
 
 /**
+ * Schema for updating DPDA metadata
+ * At least one field must be provided
+ */
+export const updateDPDASchema = z
+  .object({
+    name: z.string().min(1, 'Name must be at least 1 character').optional(),
+    description: z.string().optional(),
+  })
+  .refine((data) => data.name !== undefined || data.description !== undefined, {
+    message: 'At least one field must be provided',
+  })
+
+export type UpdateDPDAFormData = z.infer<typeof updateDPDASchema>
+
+/**
  * Schema for state configuration
  */
 export const stateConfigSchema = z

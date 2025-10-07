@@ -10,6 +10,8 @@ import type {
   ListDPDAsResponse,
   DPDAInfoResponse,
   SuccessResponse,
+  UpdateDPDARequest,
+  UpdateDPDAResponse,
 } from '@/api/types'
 
 /**
@@ -48,5 +50,20 @@ export async function getDPDA(id: string): Promise<DPDAInfoResponse> {
  */
 export async function deleteDPDA(id: string): Promise<SuccessResponse> {
   const { data } = await apiClient.delete<SuccessResponse>(`/api/dpda/${id}`)
+  return data
+}
+
+/**
+ * Update DPDA metadata (name and/or description)
+ * Uses PATCH for partial updates - only provided fields are updated
+ * @param id - The DPDA ID
+ * @param request - Update request with optional name and description
+ * @returns Response with changes made
+ */
+export async function updateDPDA(
+  id: string,
+  request: UpdateDPDARequest
+): Promise<UpdateDPDAResponse> {
+  const { data } = await apiClient.patch<UpdateDPDAResponse>(`/api/dpda/${id}`, request)
   return data
 }

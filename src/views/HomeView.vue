@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useDPDA } from '@/composables/useDPDA'
-import { createDPDASchema } from '@/schemas/dpda.schema'
+import { createDPDASchema, updateDPDASchema } from '@/schemas/dpda.schema'
+import PageLayout from '@/components/layout/PageLayout.vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,13 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,18 +24,21 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const router = useRouter()
-const { useCreateDPDA, useListDPDAs } = useDPDA()
+const { createMutation, updateMutation, listQuery } = useDPDA()
 
-// Fetch DPDAs list
-const { data: dpdaList, isLoading, isError, error, refetch } = useListDPDAs()
+// Destructure list query properties
+const { data: dpdaList, isLoading, isError, error, refetch } = listQuery
 
-// Create DPDA mutation
-const createMutation = useCreateDPDA()
+// Destructure mutation properties for proper reactivity
+const { isPending: isCreating } = createMutation
+const { isPending: isUpdating } = updateMutation
 
-// Dialog state
+// Dialog states
 const isDialogOpen = ref(false)
+const isEditDialogOpen = ref(false)
+const editingDPDA = ref<{ id: string; name: string; description?: string } | null>(null)
 
-// Form setup
+// Create form setup
 const { handleSubmit, resetForm, errors, defineField } = useForm({
   validationSchema: toTypedSchema(createDPDASchema),
 })
@@ -48,7 +46,21 @@ const { handleSubmit, resetForm, errors, defineField } = useForm({
 const [name, nameAttrs] = defineField('name')
 const [description, descriptionAttrs] = defineField('description')
 
-// Handle form submission
+// Edit form setup
+const {
+  handleSubmit: handleEditSubmit,
+  resetForm: resetEditForm,
+  errors: editErrors,
+  defineField: defineEditField,
+  setValues: setEditValues,
+} = useForm({
+  validationSchema: toTypedSchema(updateDPDASchema),
+})
+
+const [editName, editNameAttrs] = defineEditField('name')
+const [editDescription, editDescriptionAttrs] = defineEditField('description')
+
+// Handle create form submission
 const onSubmit = handleSubmit((values) => {
   createMutation.mutate(values, {
     onSuccess: (data) => {
@@ -60,12 +72,36 @@ const onSubmit = handleSubmit((values) => {
   })
 })
 
-// Close dialog on success
-watch(() => createMutation.isSuccess, (isSuccess) => {
-  if (isSuccess) {
-    isDialogOpen.value = false
-    resetForm()
-  }
+// Handle edit button click
+const openEditDialog = (dpda: { id: string; name: string; description?: string }) => {
+  editingDPDA.value = dpda
+  setEditValues({
+    name: dpda.name,
+    description: dpda.description || '',
+  })
+  isEditDialogOpen.value = true
+}
+
+// Handle edit form submission
+const onEditSubmit = handleEditSubmit((values) => {
+  if (!editingDPDA.value) return
+
+  updateMutation.mutate(
+    {
+      id: editingDPDA.value.id,
+      request: {
+        name: values.name,
+        description: values.description,
+      },
+    },
+    {
+      onSuccess: () => {
+        isEditDialogOpen.value = false
+        resetEditForm()
+        editingDPDA.value = null
+      },
+    }
+  )
 })
 
 // Format date
@@ -81,16 +117,9 @@ const navigateToEditor = (id: string) => {
 </script>
 
 <template>
-  <div class="container mx-auto py-8 px-4">
+  <PageLayout>
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
-      <div>
-        <h1 class="text-4xl font-bold">DPDA Simulator</h1>
-        <p class="text-muted-foreground mt-2">
-          Create and manage Deterministic Pushdown Automata
-        </p>
-      </div>
-
       <!-- Create Button with Dialog -->
       <Dialog v-model:open="isDialogOpen">
         <DialogTrigger as-child>
@@ -106,7 +135,7 @@ const navigateToEditor = (id: string) => {
             </DialogDescription>
           </DialogHeader>
 
-          <form @submit="onSubmit" data-testid="create-dpda-form">
+          <form data-testid="create-dpda-form" @submit="onSubmit">
             <div class="space-y-4 py-4">
               <!-- Name Field -->
               <div class="space-y-2">
@@ -119,11 +148,7 @@ const navigateToEditor = (id: string) => {
                   placeholder="e.g., Balanced Parentheses"
                   :class="{ 'border-red-500': errors.name }"
                 />
-                <p
-                  v-if="errors.name"
-                  data-testid="name-error"
-                  class="text-sm text-red-500"
-                >
+                <p v-if="errors.name" data-testid="name-error" class="text-sm text-red-500">
                   {{ errors.name }}
                 </p>
               </div>
@@ -143,18 +168,11 @@ const navigateToEditor = (id: string) => {
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                @click="isDialogOpen = false"
-              >
+              <Button type="button" variant="outline" @click="isDialogOpen = false">
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                :disabled="createMutation.isPending"
-              >
-                {{ createMutation.isPending ? 'Creating...' : 'Create' }}
+              <Button type="submit" :disabled="isCreating">
+                {{ isCreating ? 'Creating...' : 'Create' }}
               </Button>
             </DialogFooter>
           </form>
@@ -172,21 +190,17 @@ const navigateToEditor = (id: string) => {
       <AlertDescription>
         Error loading DPDAs: {{ error?.message || 'Unknown error' }}
       </AlertDescription>
-      <Button @click="refetch" variant="outline" size="sm" class="mt-2">
-        Retry
-      </Button>
+      <Button variant="outline" size="sm" class="mt-2" @click="refetch"> Retry </Button>
     </Alert>
 
     <!-- Empty State -->
-    <div
-      v-else-if="!dpdaList?.dpdas?.length"
-      data-testid="empty-state"
-      class="text-center py-12"
-    >
+    <div v-else-if="!dpdaList?.dpdas?.length" data-testid="empty-state" class="text-center py-12">
       <p class="text-muted-foreground text-lg mb-4">
         No DPDAs yet. Create your first one to get started!
       </p>
+      <!--
       <Button @click="isDialogOpen = true">Create Your First DPDA</Button>
+      -->
     </div>
 
     <!-- DPDA List -->
@@ -221,16 +235,90 @@ const navigateToEditor = (id: string) => {
           <span v-if="dpda.created_at" class="text-sm text-muted-foreground">
             Created {{ formatDate(dpda.created_at) }}
           </span>
-          <Button
-            :data-testid="`delete-dpda-${dpda.id}`"
-            variant="ghost"
-            size="sm"
-            @click.stop
-          >
-            Delete
-          </Button>
+          <div class="flex gap-2">
+            <Button
+              :data-testid="`edit-dpda-${dpda.id}`"
+              variant="ghost"
+              size="sm"
+              @click.stop="openEditDialog(dpda)"
+            >
+              Edit
+            </Button>
+            <Button :data-testid="`delete-dpda-${dpda.id}`" variant="ghost" size="sm" @click.stop>
+              Delete
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>
-  </div>
+
+    <!-- Edit DPDA Dialog -->
+    <Dialog v-model:open="isEditDialogOpen">
+      <DialogContent data-testid="edit-dpda-dialog">
+        <DialogHeader>
+          <DialogTitle>Edit DPDA</DialogTitle>
+          <DialogDescription>
+            Update the name and/or description of your DPDA
+          </DialogDescription>
+        </DialogHeader>
+
+        <form data-testid="edit-dpda-form" @submit="onEditSubmit">
+          <div class="space-y-4 py-4">
+            <!-- Name Field -->
+            <div class="space-y-2">
+              <Label for="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                v-model="editName"
+                v-bind="editNameAttrs"
+                data-testid="edit-dpda-name-input"
+                placeholder="e.g., Balanced Parentheses"
+                :class="{ 'border-red-500': editErrors.name }"
+              />
+              <p v-if="editErrors.name" data-testid="edit-name-error" class="text-sm text-red-500">
+                {{ editErrors.name }}
+              </p>
+            </div>
+
+            <!-- Description Field -->
+            <div class="space-y-2">
+              <Label for="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                v-model="editDescription"
+                v-bind="editDescriptionAttrs"
+                data-testid="edit-dpda-description-input"
+                placeholder="Optional description..."
+                rows="3"
+              />
+            </div>
+
+            <!-- General validation error -->
+            <p
+              v-if="
+                editErrors &&
+                typeof editErrors === 'object' &&
+                '_errors' in editErrors &&
+                Array.isArray(editErrors._errors) &&
+                editErrors._errors.length > 0
+              "
+              data-testid="edit-error"
+              class="text-sm text-red-500"
+            >
+              {{ editErrors._errors[0] }}
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" @click="isEditDialogOpen = false">
+              Cancel
+            </Button>
+            <Button type="submit" data-testid="edit-dpda-submit" :disabled="isUpdating">
+              {{ isUpdating ? 'Updating...' : 'Update' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </PageLayout>
 </template>

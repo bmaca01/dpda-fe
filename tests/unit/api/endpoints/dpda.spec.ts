@@ -1,18 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import {
-  createDPDA,
-  listDPDAs,
-  getDPDA,
-  deleteDPDA,
-} from '@/api/endpoints/dpda'
+import { createDPDA, listDPDAs, getDPDA, deleteDPDA, updateDPDA } from '@/api/endpoints/dpda'
 import type {
   CreateDPDARequest,
   CreateDPDAResponse,
   ListDPDAsResponse,
   DPDAInfoResponse,
   SuccessResponse,
+  UpdateDPDARequest,
+  UpdateDPDAResponse,
 } from '@/api/types'
 
 // Mock server for API testing
@@ -236,13 +233,126 @@ describe('DPDA API Endpoints', () => {
       server.use(
         http.delete(`${API_BASE}/api/dpda/nonexistent`, () => {
           return HttpResponse.json(
-            { error: 'DPDA not found', detail: 'Cannot delete non-existent DPDA', status_code: 404 },
+            {
+              error: 'DPDA not found',
+              detail: 'Cannot delete non-existent DPDA',
+              status_code: 404,
+            },
             { status: 404 }
           )
         })
       )
 
       await expect(deleteDPDA('nonexistent')).rejects.toThrow()
+    })
+  })
+
+  describe('updateDPDA', () => {
+    it('should update DPDA name successfully', async () => {
+      const request: UpdateDPDARequest = {
+        name: 'Updated Name',
+      }
+
+      const expectedResponse: UpdateDPDAResponse = {
+        changes: {
+          name: 'Updated Name',
+        },
+      }
+
+      server.use(
+        http.patch(`${API_BASE}/api/dpda/test-123`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateDPDA('test-123', request)
+
+      expect(result).toEqual(expectedResponse)
+      expect(result.changes).toHaveProperty('name')
+      expect(result.changes.name).toBe('Updated Name')
+    })
+
+    it('should update DPDA description successfully', async () => {
+      const request: UpdateDPDARequest = {
+        description: 'New description',
+      }
+
+      const expectedResponse: UpdateDPDAResponse = {
+        changes: {
+          description: 'New description',
+        },
+      }
+
+      server.use(
+        http.patch(`${API_BASE}/api/dpda/test-456`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateDPDA('test-456', request)
+
+      expect(result.changes).toHaveProperty('description')
+      expect(result.changes.description).toBe('New description')
+    })
+
+    it('should update both name and description', async () => {
+      const request: UpdateDPDARequest = {
+        name: 'New Name',
+        description: 'New Description',
+      }
+
+      const expectedResponse: UpdateDPDAResponse = {
+        changes: {
+          name: 'New Name',
+          description: 'New Description',
+        },
+      }
+
+      server.use(
+        http.patch(`${API_BASE}/api/dpda/test-789`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateDPDA('test-789', request)
+
+      expect(result.changes).toHaveProperty('name')
+      expect(result.changes).toHaveProperty('description')
+    })
+
+    it('should handle update errors', async () => {
+      server.use(
+        http.patch(`${API_BASE}/api/dpda/invalid`, () => {
+          return HttpResponse.json(
+            {
+              error: 'DPDA not found',
+              detail: 'Cannot update non-existent DPDA',
+              status_code: 404,
+            },
+            { status: 404 }
+          )
+        })
+      )
+
+      await expect(updateDPDA('invalid', { name: 'Test' })).rejects.toThrow()
+    })
+
+    it('should return empty changes when no fields updated', async () => {
+      const request: UpdateDPDARequest = {}
+
+      const expectedResponse: UpdateDPDAResponse = {
+        changes: {},
+      }
+
+      server.use(
+        http.patch(`${API_BASE}/api/dpda/test-empty`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateDPDA('test-empty', request)
+
+      expect(result.changes).toEqual({})
     })
   })
 })

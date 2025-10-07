@@ -5,11 +5,14 @@ import {
   addTransition,
   deleteTransition,
   getTransitions,
+  updateTransition,
 } from '@/api/endpoints/transitions'
 import type {
   AddTransitionRequest,
+  UpdateTransitionRequest,
   SuccessResponse,
   DeleteTransitionResponse,
+  UpdateTransitionResponse,
 } from '@/api/types'
 
 // Mock server for API testing
@@ -297,6 +300,137 @@ describe('Transition API Endpoints', () => {
       )
 
       await expect(getTransitions(dpdaId)).rejects.toThrow()
+    })
+  })
+
+  describe('updateTransition', () => {
+    it('should update transition to_state successfully', async () => {
+      const dpdaId = 'test-123'
+      const index = 0
+      const request: UpdateTransitionRequest = {
+        to_state: 'q2',
+      }
+
+      const expectedResponse: UpdateTransitionResponse = {
+        changes: {
+          to_state: 'q2',
+        },
+      }
+
+      server.use(
+        http.put(`${API_BASE}/api/dpda/${dpdaId}/transition/${index}`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateTransition(dpdaId, index, request)
+
+      expect(result.changes).toHaveProperty('to_state')
+      expect(result.changes.to_state).toBe('q2')
+    })
+
+    it('should update transition stack_push successfully', async () => {
+      const dpdaId = 'test-456'
+      const index = 1
+      const request: UpdateTransitionRequest = {
+        stack_push: ['X', 'Y', 'Z'],
+      }
+
+      const expectedResponse: UpdateTransitionResponse = {
+        changes: {
+          stack_push: ['X', 'Y', 'Z'],
+        },
+      }
+
+      server.use(
+        http.put(`${API_BASE}/api/dpda/${dpdaId}/transition/${index}`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateTransition(dpdaId, index, request)
+
+      expect(result.changes).toHaveProperty('stack_push')
+      expect(result.changes.stack_push).toEqual(['X', 'Y', 'Z'])
+    })
+
+    it('should update multiple transition fields', async () => {
+      const dpdaId = 'test-789'
+      const index = 2
+      const request: UpdateTransitionRequest = {
+        to_state: 'q3',
+        input_symbol: '1',
+        stack_push: ['A', '$'],
+      }
+
+      const expectedResponse: UpdateTransitionResponse = {
+        changes: {
+          to_state: 'q3',
+          input_symbol: '1',
+          stack_push: ['A', '$'],
+        },
+      }
+
+      server.use(
+        http.put(`${API_BASE}/api/dpda/${dpdaId}/transition/${index}`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateTransition(dpdaId, index, request)
+
+      expect(result.changes).toHaveProperty('to_state')
+      expect(result.changes).toHaveProperty('input_symbol')
+      expect(result.changes).toHaveProperty('stack_push')
+    })
+
+    it('should update transition to epsilon values', async () => {
+      const dpdaId = 'test-epsilon'
+      const index = 0
+      const request: UpdateTransitionRequest = {
+        input_symbol: null,
+        stack_top: null,
+        stack_push: [],
+      }
+
+      const expectedResponse: UpdateTransitionResponse = {
+        changes: {
+          input_symbol: null,
+          stack_top: null,
+          stack_push: [],
+        },
+      }
+
+      server.use(
+        http.put(`${API_BASE}/api/dpda/${dpdaId}/transition/${index}`, () => {
+          return HttpResponse.json(expectedResponse)
+        })
+      )
+
+      const result = await updateTransition(dpdaId, index, request)
+
+      expect(result.changes.input_symbol).toBeNull()
+      expect(result.changes.stack_top).toBeNull()
+    })
+
+    it('should handle invalid index error', async () => {
+      const dpdaId = 'test-123'
+      const index = 999
+
+      server.use(
+        http.put(`${API_BASE}/api/dpda/${dpdaId}/transition/${index}`, () => {
+          return HttpResponse.json(
+            {
+              error: 'Transition not found',
+              detail: `No transition at index ${index}`,
+              status_code: 404,
+            },
+            { status: 404 }
+          )
+        })
+      )
+
+      await expect(updateTransition(dpdaId, index, { to_state: 'q2' })).rejects.toThrow()
     })
   })
 })

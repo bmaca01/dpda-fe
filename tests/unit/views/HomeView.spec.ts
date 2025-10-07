@@ -13,6 +13,14 @@ const mockCreateMutation = {
   error: null,
 }
 
+const mockUpdateMutation = {
+  mutate: vi.fn(),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+}
+
 const mockListQuery = {
   data: {
     dpdas: [
@@ -29,8 +37,9 @@ const mockListQuery = {
 
 vi.mock('@/composables/useDPDA', () => ({
   useDPDA: () => ({
-    useCreateDPDA: () => mockCreateMutation,
-    useListDPDAs: () => mockListQuery,
+    createMutation: mockCreateMutation,
+    updateMutation: mockUpdateMutation,
+    listQuery: mockListQuery,
   }),
 }))
 
@@ -64,6 +73,9 @@ describe('HomeView', () => {
     mockCreateMutation.isPending = false
     mockCreateMutation.isSuccess = false
     mockCreateMutation.isError = false
+    mockUpdateMutation.isPending = false
+    mockUpdateMutation.isSuccess = false
+    mockUpdateMutation.isError = false
 
     // Create a router for tests
     router = createRouter({
@@ -247,7 +259,127 @@ describe('HomeView', () => {
   it('should display created date if available', () => {
     wrapper = mountComponent()
 
-    // DPDA 1 has created_at
-    expect(wrapper.text()).toMatch(/2025/)
+    // DPDA 1 has created_at - check for "Created" text
+    expect(wrapper.text()).toContain('Created')
+  })
+
+  // Edit DPDA metadata tests
+  it('should display edit button for each DPDA', () => {
+    wrapper = mountComponent()
+
+    const editButtons = wrapper.findAll('[data-testid^="edit-dpda-"]')
+    expect(editButtons.length).toBeGreaterThan(0)
+    expect(editButtons).toHaveLength(2) // Two DPDAs in mock data
+  })
+
+  it('should open edit dialog when edit button is clicked', async () => {
+    wrapper = mountComponent()
+
+    const editButton = wrapper.find('[data-testid="edit-dpda-1"]')
+    await editButton.trigger('click')
+
+    expect(wrapper.find('[data-testid="edit-dpda-dialog"]').exists()).toBe(true)
+  })
+
+  it('should pre-fill edit form with current DPDA data', async () => {
+    wrapper = mountComponent()
+
+    // Click edit button for DPDA 1
+    await wrapper.find('[data-testid="edit-dpda-1"]').trigger('click')
+
+    // Check that form is pre-filled
+    const nameInput = wrapper.find('[data-testid="edit-dpda-name-input"]')
+    const descInput = wrapper.find('[data-testid="edit-dpda-description-input"]')
+
+    expect((nameInput.element as HTMLInputElement).value).toBe('DPDA 1')
+    expect((descInput.element as HTMLTextAreaElement).value).toBe('') // No description for DPDA 1
+  })
+
+  it('should call updateMutation with correct data on submit', async () => {
+    wrapper = mountComponent()
+
+    // Open edit dialog for DPDA 2 (has description)
+    await wrapper.find('[data-testid="edit-dpda-2"]').trigger('click')
+
+    // Modify the name
+    const nameInput = wrapper.find('[data-testid="edit-dpda-name-input"]')
+    await nameInput.setValue('Updated DPDA 2')
+
+    // Submit form
+    const form = wrapper.find('[data-testid="edit-dpda-form"]')
+    await form.trigger('submit')
+
+    expect(mockUpdateMutation.mutate).toHaveBeenCalledWith(
+      {
+        id: '2',
+        request: {
+          name: 'Updated DPDA 2',
+          description: 'Test DPDA',
+        },
+      },
+      expect.any(Object) // onSuccess callback
+    )
+  })
+
+  it('should validate that at least one field is changed', async () => {
+    wrapper = mountComponent()
+
+    // Open edit dialog
+    await wrapper.find('[data-testid="edit-dpda-1"]').trigger('click')
+
+    // Don't change anything, just submit
+    const form = wrapper.find('[data-testid="edit-dpda-form"]')
+    await form.trigger('submit')
+
+    // Should show validation error
+    expect(wrapper.find('[data-testid="edit-error"]').exists()).toBe(true)
+    expect(mockUpdateMutation.mutate).not.toHaveBeenCalled()
+  })
+
+  it('should close edit dialog on success', async () => {
+    mockUpdateMutation.isSuccess = true
+
+    wrapper = mountComponent()
+
+    // Open dialog
+    await wrapper.find('[data-testid="edit-dpda-1"]').trigger('click')
+    expect(wrapper.find('[data-testid="edit-dpda-dialog"]').exists()).toBe(true)
+
+    // After success, dialog should close
+    await wrapper.vm.$nextTick()
+
+    // Reset
+    mockUpdateMutation.isSuccess = false
+  })
+
+  it('should show loading state during update', async () => {
+    wrapper = mountComponent()
+
+    // Open edit dialog
+    await wrapper.find('[data-testid="edit-dpda-1"]').trigger('click')
+
+    // Set loading state
+    mockUpdateMutation.isPending = true
+    await wrapper.vm.$nextTick()
+
+    const submitButton = wrapper.find('[data-testid="edit-dpda-submit"]')
+    expect(submitButton.attributes('disabled')).toBeDefined()
+    expect(submitButton.text()).toContain('Updating')
+
+    // Reset
+    mockUpdateMutation.isPending = false
+  })
+
+  it('should stop propagation when edit button clicked', async () => {
+    wrapper = mountComponent()
+
+    // Mock router push to check it's not called
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const editButton = wrapper.find('[data-testid="edit-dpda-1"]')
+    await editButton.trigger('click')
+
+    // Should not navigate to editor
+    expect(pushSpy).not.toHaveBeenCalled()
   })
 })

@@ -30,6 +30,7 @@ dist-ssr
 /playwright/.cache/
 /playwright/.auth/
 
+.env.*
 .env.local
 .env.*.local
 *.local.md

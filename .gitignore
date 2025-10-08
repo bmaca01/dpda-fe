@@ -13,8 +13,7 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode
 .idea
 .DS_Store
 *.suo
@@ -37,3 +36,6 @@ dist-ssr
 *.local.md
 
 coverage/
+
+# Husky hooks
+.husky

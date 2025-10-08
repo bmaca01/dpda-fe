@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useForm, useField } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { computeSchema } from '@/schemas/dpda.schema'
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { FormField, FormItem, FormControl } from '@/components/ui/form'
+import { FormItem, FormControl } from '@/components/ui/form'
 import { Loader2, AlertTriangle, Info } from 'lucide-vue-next'
 import type { ComputeFormData } from '@/schemas/dpda.schema'
 import type { UseMutationReturnType } from '@tanstack/vue-query'
@@ -26,7 +26,7 @@ const props = defineProps<Props>()
 const { validateQuery } = useComputation(props.dpdaId)
 
 // Form setup with VeeValidate + Zod
-const { handleSubmit, defineField, errors, values } = useForm<ComputeFormData>({
+const { handleSubmit, defineField, errors } = useForm<ComputeFormData>({
   validationSchema: toTypedSchema(computeSchema),
   initialValues: {
     inputString: '',

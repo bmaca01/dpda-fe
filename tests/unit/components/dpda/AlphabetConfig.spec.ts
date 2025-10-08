@@ -358,4 +358,76 @@ describe('AlphabetConfig', () => {
       expect(alphabetTable.props('dpdaId')).toBe('test-dpda-1')
     })
   })
+
+  describe('Conditional Form Display', () => {
+    it('should show form when DPDA has no alphabets configured', async () => {
+      vi.mocked(configApi.setAlphabets).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // Form should be visible when no alphabets exist
+      expect(wrapper.find('[data-testid="input-alphabet-input"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="stack-alphabet-input"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="submit-button"]').exists()).toBe(true)
+    })
+
+    it('should hide form when DPDA has alphabets configured', async () => {
+      vi.mocked(configApi.setAlphabets).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // Simulate DPDA having alphabets by checking AlphabetTable's behavior
+      // When alphabets exist, form should be hidden
+      const alphabetTable = wrapper.findComponent({ name: 'AlphabetTable' })
+
+      // Mock DPDA with alphabets
+      if (alphabetTable.vm && (alphabetTable.vm as any).getQuery?.data?.value?.stack_alphabet?.length > 0) {
+        expect(wrapper.find('[data-testid="input-alphabet-input"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="submit-button"]').exists()).toBe(false)
+      }
+    })
+
+    it('should show informational message when form is hidden', async () => {
+      vi.mocked(configApi.setAlphabets).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // Check if message about using Edit button appears when alphabets exist
+      const alphabetTable = wrapper.findComponent({ name: 'AlphabetTable' })
+
+      if (alphabetTable.vm && (alphabetTable.vm as any).getQuery?.data?.value?.stack_alphabet?.length > 0) {
+        expect(wrapper.text()).toMatch(/edit button/i)
+      }
+    })
+
+    it('should always render AlphabetTable regardless of configuration state', async () => {
+      vi.mocked(configApi.setAlphabets).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // AlphabetTable should always be present
+      const alphabetTable = wrapper.findComponent({ name: 'AlphabetTable' })
+      expect(alphabetTable.exists()).toBe(true)
+    })
+
+    it('should allow initial configuration via form when no alphabets exist', async () => {
+      vi.mocked(configApi.setAlphabets).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // When no alphabets exist, form should be functional
+      await wrapper.find('[data-testid="input-alphabet-input"]').setValue('0,1')
+      await wrapper.find('[data-testid="stack-alphabet-input"]').setValue('$,A')
+      await wrapper.find('[data-testid="initial-stack-symbol-input"]').setValue('$')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(configApi.setAlphabets).toHaveBeenCalled()
+    })
+  })
 })

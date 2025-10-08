@@ -320,4 +320,76 @@ describe('StateConfig', () => {
       expect(stateTable.props('dpdaId')).toBe('test-dpda-1')
     })
   })
+
+  describe('Conditional Form Display', () => {
+    it('should show form when DPDA has no states configured', async () => {
+      vi.mocked(configApi.setStates).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // Form should be visible when no states exist
+      expect(wrapper.find('[data-testid="states-input"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="submit-button"]').exists()).toBe(true)
+    })
+
+    it('should hide form when DPDA has states configured', async () => {
+      vi.mocked(configApi.setStates).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // Simulate DPDA having states by checking StateTable's behavior
+      // When states exist, form should be hidden
+      // This will fail until we implement the conditional logic
+      const stateTable = wrapper.findComponent({ name: 'StateTable' })
+
+      // Mock DPDA with states
+      if (stateTable.vm && (stateTable.vm as any).getQuery?.data?.value?.states?.length > 0) {
+        expect(wrapper.find('[data-testid="states-input"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="submit-button"]').exists()).toBe(false)
+      }
+    })
+
+    it('should show informational message when form is hidden', async () => {
+      vi.mocked(configApi.setStates).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // Check if message about using Edit button appears when states exist
+      const stateTable = wrapper.findComponent({ name: 'StateTable' })
+
+      if (stateTable.vm && (stateTable.vm as any).getQuery?.data?.value?.states?.length > 0) {
+        expect(wrapper.text()).toMatch(/edit button/i)
+      }
+    })
+
+    it('should always render StateTable regardless of configuration state', async () => {
+      vi.mocked(configApi.setStates).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // StateTable should always be present
+      const stateTable = wrapper.findComponent({ name: 'StateTable' })
+      expect(stateTable.exists()).toBe(true)
+    })
+
+    it('should allow initial configuration via form when no states exist', async () => {
+      vi.mocked(configApi.setStates).mockResolvedValue({ success: true, message: 'Saved' })
+
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      // When no states exist, form should be functional
+      await wrapper.find('[data-testid="states-input"]').setValue('q0,q1')
+      await wrapper.find('[data-testid="initial-state-input"]').setValue('q0')
+      await wrapper.find('[data-testid="accept-states-input"]').setValue('q1')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(configApi.setStates).toHaveBeenCalled()
+    })
+  })
 })

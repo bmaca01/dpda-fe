@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useDPDA } from '@/composables/useDPDA'
 import { setStates } from '@/api/endpoints/configuration'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle2, XCircle } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Info } from 'lucide-vue-next'
 import type { StateConfigFormData } from '@/schemas/dpda.schema'
 import { stateConfigSchema } from '@/schemas/dpda.schema'
 import StateTable from './StateTable.vue'
@@ -18,9 +19,16 @@ interface Props {
 const props = defineProps<Props>()
 
 const queryClient = useQueryClient()
+const { getQuery } = useDPDA(props.dpdaId)
+
 const successMessage = ref<string | null>(null)
 const errorMessage = ref<string | null>(null)
 const validationErrors = ref<Record<string, string>>({})
+
+// Computed: check if DPDA has states configured
+const hasStates = computed(() => {
+  return (getQuery.data.value?.states?.length ?? 0) > 0
+})
 
 // Form inputs (raw strings)
 const statesInput = ref('')
@@ -100,14 +108,22 @@ const onSubmit = (event: Event) => {
     <StateTable :dpda-id="dpdaId" />
 
     <!-- Divider -->
-    <div class="border-t"></div>
+    <div v-if="!hasStates" class="border-t"></div>
 
-    <!-- Update Configuration (Form) -->
-    <div class="space-y-4">
+    <!-- Informational Message (when states exist) -->
+    <Alert v-if="hasStates" class="bg-blue-50 border-blue-200">
+      <Info class="h-4 w-4 text-blue-600" />
+      <AlertDescription class="text-blue-800">
+        States are configured. Use the <strong>Edit</strong> button above to modify the configuration.
+      </AlertDescription>
+    </Alert>
+
+    <!-- Update Configuration (Form) - Only show when no states exist -->
+    <div v-if="!hasStates" class="space-y-4">
       <div>
-        <h3 class="text-lg font-semibold">Update States Configuration</h3>
+        <h3 class="text-lg font-semibold">Configure States</h3>
         <p class="text-sm text-muted-foreground">
-          Define or update the states for your DPDA, including the initial and accept states.
+          Define the states for your DPDA, including the initial and accept states.
         </p>
       </div>
 

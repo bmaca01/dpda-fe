@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useDPDA } from '@/composables/useDPDA'
 import { setAlphabets } from '@/api/endpoints/configuration'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle2, XCircle } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Info } from 'lucide-vue-next'
 import type { AlphabetConfigFormData } from '@/schemas/dpda.schema'
 import { alphabetConfigSchema } from '@/schemas/dpda.schema'
 import AlphabetTable from './AlphabetTable.vue'
@@ -18,9 +19,17 @@ interface Props {
 const props = defineProps<Props>()
 
 const queryClient = useQueryClient()
+const { getQuery } = useDPDA(props.dpdaId)
+
 const successMessage = ref<string | null>(null)
 const errorMessage = ref<string | null>(null)
 const validationErrors = ref<Record<string, string>>({})
+
+// Computed: check if DPDA has alphabets configured
+// We check stack_alphabet since it's required
+const hasAlphabets = computed(() => {
+  return (getQuery.data.value?.stack_alphabet?.length ?? 0) > 0
+})
 
 // Form inputs (raw strings)
 const inputAlphabetInput = ref('')
@@ -100,14 +109,22 @@ const onSubmit = (event: Event) => {
     <AlphabetTable :dpda-id="dpdaId" />
 
     <!-- Divider -->
-    <div class="border-t"></div>
+    <div v-if="!hasAlphabets" class="border-t"></div>
 
-    <!-- Update Configuration (Form) -->
-    <div class="space-y-4">
+    <!-- Informational Message (when alphabets exist) -->
+    <Alert v-if="hasAlphabets" class="bg-blue-50 border-blue-200">
+      <Info class="h-4 w-4 text-blue-600" />
+      <AlertDescription class="text-blue-800">
+        Alphabets are configured. Use the <strong>Edit</strong> button above to modify the configuration.
+      </AlertDescription>
+    </Alert>
+
+    <!-- Update Configuration (Form) - Only show when no alphabets exist -->
+    <div v-if="!hasAlphabets" class="space-y-4">
       <div>
-        <h3 class="text-lg font-semibold">Update Alphabets Configuration</h3>
+        <h3 class="text-lg font-semibold">Configure Alphabets</h3>
         <p class="text-sm text-muted-foreground">
-          Define or update the input and stack alphabets for your DPDA, including the initial stack symbol.
+          Define the input and stack alphabets for your DPDA, including the initial stack symbol.
         </p>
       </div>
 

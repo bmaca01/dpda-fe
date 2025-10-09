@@ -138,4 +138,60 @@ describe('useComputation', () => {
       expect(result.computeMutation).toBeDefined()
     })
   })
+
+  describe('with enabled option', () => {
+    it('should accept enabled option and conditionally disable validateQuery', () => {
+      const mockUseQuery = vi.mocked(useQuery)
+      mockUseQuery.mockReturnValue({} as any)
+
+      useComputation('test-dpda-1', { enabled: false })
+
+      expect(mockUseQuery).toHaveBeenCalledWith({
+        queryKey: ['dpda', 'test-dpda-1', 'validate'],
+        queryFn: expect.any(Function),
+        enabled: false,
+      })
+    })
+
+    it('should enable validateQuery when enabled option is true', () => {
+      const mockUseQuery = vi.mocked(useQuery)
+      mockUseQuery.mockReturnValue({} as any)
+
+      useComputation('test-dpda-1', { enabled: true })
+
+      expect(mockUseQuery).toHaveBeenCalledWith({
+        queryKey: ['dpda', 'test-dpda-1', 'validate'],
+        queryFn: expect.any(Function),
+        enabled: true,
+      })
+    })
+
+    it('should maintain backward compatibility when no options provided', () => {
+      const mockUseQuery = vi.mocked(useQuery)
+      mockUseQuery.mockReturnValue({} as any)
+
+      useComputation('test-dpda-1')
+
+      // Default behavior - should be enabled (true)
+      expect(mockUseQuery).toHaveBeenCalledWith({
+        queryKey: ['dpda', 'test-dpda-1', 'validate'],
+        queryFn: expect.any(Function),
+        enabled: true,
+      })
+    })
+
+    it('should override default enabled behavior when explicitly provided', () => {
+      const mockUseQuery = vi.mocked(useQuery)
+      mockUseQuery.mockReturnValue({} as any)
+
+      // Even with dpdaId, enabled: false should disable the query
+      useComputation('test-dpda-1', { enabled: false })
+
+      expect(mockUseQuery).toHaveBeenCalledWith({
+        queryKey: ['dpda', 'test-dpda-1', 'validate'],
+        queryFn: expect.any(Function),
+        enabled: false,
+      })
+    })
+  })
 })

@@ -30,6 +30,13 @@ const dpdaName = computed(() => dpda.value?.name ?? 'DPDA')
 const isValid = computed(() => dpda.value?.is_valid ?? null)
 const graphData = computed(() => visualizationData.value?.data)
 
+// Validation should be enabled if states are configured
+// Explicitly convert to boolean to ensure we return true/false, not undefined
+const canValidate = computed(() => {
+  if (!dpda.value) return false
+  return !!(dpda.value.states && dpda.value.states.length > 0)
+})
+
 // Event handlers for PageLayout (placeholders for now)
 const handleValidate = () => {
   // TODO: Implement validation functionality
@@ -50,6 +57,7 @@ const handleDelete = () => {
     :dpda-id="dpdaId"
     :dpda-name="dpdaName"
     :is-valid="isValid"
+    :can-validate="canValidate"
     current-view="visualize"
     @validate="handleValidate"
     @export="handleExport"

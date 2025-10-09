@@ -29,6 +29,7 @@ describe('AppSidebar', () => {
   const createWrapper = (props: {
     dpdaId: string
     currentView: 'editor' | 'compute' | 'visualize'
+    isValid?: boolean | null
   }) => {
     return mount(AppSidebar, {
       props,
@@ -133,5 +134,192 @@ describe('AppSidebar', () => {
     expect(validateBtn.text() || validateBtn.attributes('aria-label')).toBeTruthy()
     expect(exportBtn.text() || exportBtn.attributes('aria-label')).toBeTruthy()
     expect(deleteBtn.text() || deleteBtn.attributes('aria-label')).toBeTruthy()
+  })
+
+  describe('Conditional Navigation', () => {
+    it('should always enable Editor link', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          isValid: false, // Even when invalid
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const editorLink = wrapper.find('[data-testid="sidebar-nav-editor"]')
+      expect(editorLink.exists()).toBe(true)
+      expect(editorLink.classes()).not.toContain('pointer-events-none')
+      expect(editorLink.attributes('aria-disabled')).toBeUndefined()
+    })
+
+    it('should always enable Visualize link', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          isValid: false, // Even when invalid
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const visualizeLink = wrapper.find('[data-testid="sidebar-nav-visualize"]')
+      expect(visualizeLink.exists()).toBe(true)
+      expect(visualizeLink.classes()).not.toContain('pointer-events-none')
+      expect(visualizeLink.attributes('aria-disabled')).toBeUndefined()
+    })
+
+    it('should disable Compute link when isValid is false', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          isValid: false,
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const computeLink = wrapper.find('[data-testid="sidebar-nav-compute"]')
+      expect(computeLink.exists()).toBe(true)
+      expect(computeLink.classes()).toContain('pointer-events-none')
+      expect(computeLink.classes()).toContain('opacity-50')
+      expect(computeLink.attributes('aria-disabled')).toBe('true')
+    })
+
+    it('should disable Compute link when isValid is null', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          isValid: null,
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const computeLink = wrapper.find('[data-testid="sidebar-nav-compute"]')
+      expect(computeLink.exists()).toBe(true)
+      expect(computeLink.classes()).toContain('pointer-events-none')
+      expect(computeLink.classes()).toContain('opacity-50')
+      expect(computeLink.attributes('aria-disabled')).toBe('true')
+    })
+
+    it('should enable Compute link when isValid is true', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          isValid: true,
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const computeLink = wrapper.find('[data-testid="sidebar-nav-compute"]')
+      expect(computeLink.exists()).toBe(true)
+      expect(computeLink.classes()).not.toContain('pointer-events-none')
+      expect(computeLink.classes()).not.toContain('opacity-50')
+      expect(computeLink.attributes('aria-disabled')).toBeUndefined()
+    })
+
+    it('should prevent navigation when Compute link is disabled', async () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          isValid: false,
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const computeLink = wrapper.find('[data-testid="sidebar-nav-compute"]')
+      const currentRoute = router.currentRoute.value.path
+
+      await computeLink.trigger('click')
+      await router.isReady()
+
+      // Should not navigate when disabled
+      expect(router.currentRoute.value.path).toBe(currentRoute)
+    })
+  })
+
+  describe('Action Button States', () => {
+    it('should disable Validate button when canValidate is false', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          canValidate: false,
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const validateBtn = wrapper.find('[data-testid="action-validate"]')
+      expect(validateBtn.exists()).toBe(true)
+      expect(validateBtn.attributes('disabled')).toBeDefined()
+    })
+
+    it('should enable Validate button when canValidate is true', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          canValidate: true,
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const validateBtn = wrapper.find('[data-testid="action-validate"]')
+      expect(validateBtn.exists()).toBe(true)
+      expect(validateBtn.attributes('disabled')).toBeUndefined()
+    })
+
+    it('should always enable Export button', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          canValidate: false, // Even when validation disabled
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const exportBtn = wrapper.find('[data-testid="action-export"]')
+      expect(exportBtn.exists()).toBe(true)
+      expect(exportBtn.attributes('disabled')).toBeUndefined()
+    })
+
+    it('should always enable Delete button', () => {
+      const wrapper = mount(AppSidebar, {
+        props: {
+          dpdaId: '123',
+          currentView: 'editor',
+          canValidate: false, // Even when validation disabled
+        },
+        global: {
+          plugins: [router],
+        },
+      })
+
+      const deleteBtn = wrapper.find('[data-testid="action-delete"]')
+      expect(deleteBtn.exists()).toBe(true)
+      expect(deleteBtn.attributes('disabled')).toBeUndefined()
+    })
   })
 })

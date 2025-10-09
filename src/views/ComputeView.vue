@@ -32,6 +32,13 @@ const hasTrace = computed(() => {
   return !!result?.trace && Array.isArray(result.trace) && result.trace.length > 0
 })
 
+// ComputeView requires valid DPDA to access, so validation button should be enabled when states exist
+// Explicitly convert to boolean to ensure we return true/false, not undefined
+const canValidate = computed(() => {
+  if (!dpda.value) return false
+  return !!(dpda.value.states && dpda.value.states.length > 0)
+})
+
 // Event handlers for PageLayout (these would be implemented but are stubs for now)
 const handleValidate = () => {
   // Validation is automatic via validateQuery
@@ -52,6 +59,7 @@ const handleDelete = () => {
     :dpda-id="dpdaId"
     :dpda-name="dpdaName"
     :is-valid="isValid"
+    :can-validate="canValidate"
     current-view="compute"
     @validate="handleValidate"
     @export="handleExport"

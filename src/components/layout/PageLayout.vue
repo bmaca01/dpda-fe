@@ -8,11 +8,13 @@ interface Props {
   dpdaName?: string
   isValid?: boolean | null
   currentView?: 'editor' | 'compute' | 'visualize'
+  canValidate?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   showSidebar: false,
   isValid: null,
+  canValidate: true,
 })
 
 interface Emits {
@@ -40,6 +42,8 @@ const handleDelete = () => emit('delete')
         v-if="showSidebar && dpdaId && currentView"
         :dpda-id="dpdaId"
         :current-view="currentView"
+        :is-valid="isValid"
+        :can-validate="canValidate"
         @validate="handleValidate"
         @export="handleExport"
         @delete="handleDelete"

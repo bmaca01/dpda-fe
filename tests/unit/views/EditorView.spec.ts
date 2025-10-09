@@ -148,6 +148,7 @@ describe('EditorView', () => {
         id: 'test-dpda-1',
         name: 'Test DPDA',
         description: 'Test description',
+        states: ['q0', 'q1'], // Add states so validation can be triggered
       }
 
       const mockValidation = {
@@ -178,6 +179,7 @@ describe('EditorView', () => {
         id: 'test-dpda-1',
         name: 'Test DPDA',
         description: 'Test description',
+        states: ['q0', 'q1'], // Add states so validation can be triggered
       }
 
       const mockValidation = {
@@ -285,6 +287,161 @@ describe('EditorView', () => {
       expect(statesTab.exists()).toBe(true)
       expect(alphabetsTab.exists()).toBe(true)
       expect(transitionsTab.exists()).toBe(true)
+    })
+  })
+
+  describe('Tab Accessibility', () => {
+    it('should always have States tab accessible', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        // Empty DPDA - no states, alphabets, or transitions
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const statesTab = wrapper.find('[data-testid="tab-states"]')
+      expect(statesTab.exists()).toBe(true)
+      expect(statesTab.attributes('data-disabled')).toBeUndefined()
+      expect(statesTab.attributes('aria-disabled')).not.toBe('true')
+    })
+
+    it('should disable Alphabets tab when no states', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        // No states configured
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const alphabetsTab = wrapper.find('[data-testid="tab-alphabets"]')
+      expect(alphabetsTab.exists()).toBe(true)
+      // radix-vue sets data-disabled="" (empty string) when disabled
+      expect(alphabetsTab.attributes('data-disabled')).toBeDefined()
+    })
+
+    it('should enable Alphabets tab when states exist', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        states: ['q0', 'q1'],
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const alphabetsTab = wrapper.find('[data-testid="tab-alphabets"]')
+      expect(alphabetsTab.exists()).toBe(true)
+      expect(alphabetsTab.attributes('data-disabled')).not.toBe('true')
+    })
+
+    it('should disable Transitions tab when no states', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        // No states
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const transitionsTab = wrapper.find('[data-testid="tab-transitions"]')
+      expect(transitionsTab.exists()).toBe(true)
+      // radix-vue sets data-disabled="" (empty string) when disabled
+      expect(transitionsTab.attributes('data-disabled')).toBeDefined()
+    })
+
+    it('should disable Transitions tab when states but no alphabets', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        states: ['q0', 'q1'],
+        // No alphabets configured
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const transitionsTab = wrapper.find('[data-testid="tab-transitions"]')
+      expect(transitionsTab.exists()).toBe(true)
+      // radix-vue sets data-disabled="" (empty string) when disabled
+      expect(transitionsTab.attributes('data-disabled')).toBeDefined()
+    })
+
+    it('should disable Transitions tab when states and input alphabet but no stack alphabet', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        states: ['q0', 'q1'],
+        input_alphabet: ['0', '1'],
+        // No stack alphabet
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const transitionsTab = wrapper.find('[data-testid="tab-transitions"]')
+      expect(transitionsTab.exists()).toBe(true)
+      // radix-vue sets data-disabled="" (empty string) when disabled
+      expect(transitionsTab.attributes('data-disabled')).toBeDefined()
+    })
+
+    it('should enable Transitions tab when states and both alphabets configured', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        states: ['q0', 'q1'],
+        input_alphabet: ['0', '1'],
+        stack_alphabet: ['$', 'A'],
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+      vi.mocked(transitionsApi.getTransitions).mockResolvedValue({
+        transitions: [],
+        total: 0,
+      })
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const transitionsTab = wrapper.find('[data-testid="tab-transitions"]')
+      expect(transitionsTab.exists()).toBe(true)
+      expect(transitionsTab.attributes('data-disabled')).not.toBe('true')
+    })
+
+    it('should add aria-disabled to disabled tabs', async () => {
+      const mockDPDA = {
+        id: 'test-dpda-1',
+        name: 'Test DPDA',
+        description: 'Test description',
+        // Empty DPDA
+      }
+
+      vi.mocked(dpdaApi.getDPDA).mockResolvedValue(mockDPDA)
+
+      const wrapper = await createWrapper('test-dpda-1')
+
+      const alphabetsTab = wrapper.find('[data-testid="tab-alphabets"]')
+      const transitionsTab = wrapper.find('[data-testid="tab-transitions"]')
+
+      // Disabled tabs should have data-disabled attribute (radix-vue sets it as empty string)
+      expect(alphabetsTab.attributes('data-disabled')).toBeDefined()
+      expect(transitionsTab.attributes('data-disabled')).toBeDefined()
     })
   })
 

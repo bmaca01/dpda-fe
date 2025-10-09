@@ -7,9 +7,14 @@ import { Separator } from '@/components/ui/separator'
 interface Props {
   dpdaId: string
   currentView: 'editor' | 'compute' | 'visualize'
+  isValid?: boolean | null
+  canValidate?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isValid: undefined,
+  canValidate: true,
+})
 
 interface Emits {
   (e: 'validate'): void
@@ -20,6 +25,11 @@ interface Emits {
 const emit = defineEmits<Emits>()
 
 const isActive = (view: string) => computed(() => props.currentView === view)
+
+// Compute link should only be accessible when DPDA is valid
+// When isValid is undefined (not provided), allow access for backward compatibility
+// Disable only when explicitly false or null
+const canAccessCompute = computed(() => props.isValid !== false && props.isValid !== null)
 </script>
 
 <template>
@@ -41,10 +51,16 @@ const isActive = (view: string) => computed(() => props.currentView === view)
 
           <RouterLink
             data-testid="sidebar-nav-compute"
-            :to="`/dpda/${dpdaId}/compute`"
-            class="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-            :class="{ 'bg-accent text-accent-foreground': isActive('compute').value }"
+            :to="canAccessCompute ? `/dpda/${dpdaId}/compute` : ''"
+            class="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors"
+            :class="{
+              'bg-accent text-accent-foreground': isActive('compute').value,
+              'hover:bg-accent hover:text-accent-foreground': canAccessCompute,
+              'opacity-50 cursor-not-allowed pointer-events-none': !canAccessCompute,
+            }"
             :aria-current="isActive('compute').value ? 'page' : undefined"
+            :aria-disabled="!canAccessCompute ? 'true' : undefined"
+            @click="(e: Event) => !canAccessCompute && e.preventDefault()"
           >
             Compute
           </RouterLink>
@@ -70,6 +86,7 @@ const isActive = (view: string) => computed(() => props.currentView === view)
             variant="outline"
             size="sm"
             class="w-full justify-start"
+            :disabled="!canValidate"
             @click="emit('validate')"
           >
             Validate DPDA

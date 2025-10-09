@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const router = useRouter()
-const { createMutation, updateMutation, listQuery } = useDPDA()
+const { createMutation, updateMutation, deleteMutation, listQuery } = useDPDA()
 
 // Destructure list query properties
 const { data: dpdaList, isLoading, isError, error, refetch } = listQuery
@@ -32,11 +32,14 @@ const { data: dpdaList, isLoading, isError, error, refetch } = listQuery
 // Destructure mutation properties for proper reactivity
 const { isPending: isCreating } = createMutation
 const { isPending: isUpdating } = updateMutation
+const { isPending: isDeleting } = deleteMutation
 
 // Dialog states
 const isDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
 const editingDPDA = ref<{ id: string; name: string; description?: string } | null>(null)
+const deletingDPDA = ref<{ id: string; name: string } | null>(null)
 
 // Create form setup
 const { handleSubmit, resetForm, errors, defineField } = useForm({
@@ -108,6 +111,28 @@ const onEditSubmit = handleEditSubmit((values) => {
 const formatDate = (dateString?: string) => {
   if (!dateString) return ''
   return new Date(dateString).toLocaleDateString()
+}
+
+// Handle delete button click
+const confirmDelete = (dpda: { id: string; name: string }) => {
+  deletingDPDA.value = dpda
+  isDeleteDialogOpen.value = true
+}
+
+// Handle actual deletion
+const handleDelete = () => {
+  if (!deletingDPDA.value) return
+
+  deleteMutation.mutate(deletingDPDA.value.id, {
+    onSuccess: () => {
+      isDeleteDialogOpen.value = false
+      deletingDPDA.value = null
+    },
+    onError: (error) => {
+      console.error('Failed to delete DPDA:', error)
+      // Keep dialog open to show error or retry
+    },
+  })
 }
 
 // Navigate to editor
@@ -244,7 +269,12 @@ const navigateToEditor = (id: string) => {
             >
               Edit
             </Button>
-            <Button :data-testid="`delete-dpda-${dpda.id}`" variant="ghost" size="sm" @click.stop>
+            <Button
+              :data-testid="`delete-dpda-${dpda.id}`"
+              variant="ghost"
+              size="sm"
+              @click.stop="confirmDelete(dpda)"
+            >
               Delete
             </Button>
           </div>
@@ -257,9 +287,7 @@ const navigateToEditor = (id: string) => {
       <DialogContent data-testid="edit-dpda-dialog">
         <DialogHeader>
           <DialogTitle>Edit DPDA</DialogTitle>
-          <DialogDescription>
-            Update the name and/or description of your DPDA
-          </DialogDescription>
+          <DialogDescription> Update the name and/or description of your DPDA </DialogDescription>
         </DialogHeader>
 
         <form data-testid="edit-dpda-form" @submit="onEditSubmit">
@@ -318,6 +346,32 @@ const navigateToEditor = (id: string) => {
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Delete DPDA Confirmation Dialog -->
+    <Dialog v-model:open="isDeleteDialogOpen">
+      <DialogContent data-testid="delete-dpda-dialog">
+        <DialogHeader>
+          <DialogTitle>Delete DPDA</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete "{{ deletingDPDA?.name }}"? This action cannot be
+            undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="isDeleteDialogOpen = false">
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            data-testid="confirm-delete-button"
+            :disabled="isDeleting"
+            @click="handleDelete"
+          >
+            {{ isDeleting ? 'Deleting...' : 'Delete' }}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </PageLayout>

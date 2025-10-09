@@ -1,45 +1,60 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useMutation } from '@tanstack/vue-query'
+import { useDPDA } from '@/composables/useDPDA'
+import { useComputation } from '@/composables/useComputation'
 import PageLayout from '@/components/layout/PageLayout.vue'
 import StateConfig from '@/components/dpda/StateConfig.vue'
 import AlphabetConfig from '@/components/dpda/AlphabetConfig.vue'
 import TransitionForm from '@/components/dpda/TransitionForm.vue'
 import TransitionTable from '@/components/dpda/TransitionTable.vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getDPDA, deleteDPDA } from '@/api/endpoints/dpda'
-import { validateDPDA, exportDPDA } from '@/api/endpoints/operations'
+import { exportDPDA } from '@/api/endpoints/operations'
 
 const route = useRoute()
 const router = useRouter()
-const queryClient = useQueryClient()
 
 const dpdaId = computed(() => route.params.id as string)
 const activeTab = ref('states')
-const validationStatus = ref<boolean | null>(null)
 
-// Fetch DPDA data
-const {
-  data: dpda,
-  isLoading,
-  isError,
-  error,
-} = useQuery({
-  queryKey: ['dpda', dpdaId],
-  queryFn: () => getDPDA(dpdaId.value),
-  enabled: computed(() => !!dpdaId.value),
+// Use composables for DPDA operations
+const { getQuery, deleteMutation } = useDPDA(dpdaId.value)
+
+// Destructure query data
+const { data: dpda, isLoading, isError, error } = getQuery
+
+// Compute whether DPDA has minimum configuration for validation
+// Prevents validation API calls on newly created DPDAs (no states/config)
+const canValidate = computed(() => {
+  if (!dpda.value) return false
+
+  // Require at least states to be configured before attempting validation
+  // Explicitly convert to boolean to ensure we return true/false, not undefined
+  const hasStates = !!(dpda.value.states && dpda.value.states.length > 0)
+
+  return hasStates
 })
 
-// Validate mutation
-const validateMutation = useMutation({
-  mutationFn: () => validateDPDA(dpdaId.value),
-  onSuccess: (data) => {
-    validationStatus.value = data.is_valid
-  },
+// Compute tab accessibility based on DPDA configuration
+const canAccessAlphabets = computed(() => {
+  if (!dpda.value) return false
+  return !!(dpda.value.states && dpda.value.states.length > 0)
 })
 
-// Export mutation
+const canAccessTransitions = computed(() => {
+  if (!dpda.value) return false
+  const hasStates = !!(dpda.value.states && dpda.value.states.length > 0)
+  const hasInputAlphabet = !!(dpda.value.input_alphabet && dpda.value.input_alphabet.length > 0)
+  const hasStackAlphabet = !!(dpda.value.stack_alphabet && dpda.value.stack_alphabet.length > 0)
+  return hasStates && hasInputAlphabet && hasStackAlphabet
+})
+
+// Use conditional enabling for validateQuery
+const { validateQuery } = useComputation(dpdaId.value, { enabled: canValidate.value })
+const { data: validationResult, isLoading: isValidating } = validateQuery
+
+// Export mutation (operation-specific, not in composable)
 const exportMutation = useMutation({
   mutationFn: () => exportDPDA(dpdaId.value, 'json'),
   onSuccess: (data) => {
@@ -56,17 +71,11 @@ const exportMutation = useMutation({
   },
 })
 
-// Delete mutation
-const deleteMutation = useMutation({
-  mutationFn: () => deleteDPDA(dpdaId.value),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['dpdas'] })
-    router.push({ name: 'home' })
-  },
-})
-
 const handleValidate = () => {
-  validateMutation.mutate()
+  // Only refetch if validation is enabled
+  if (canValidate.value) {
+    validateQuery.refetch()
+  }
 }
 
 const handleExport = () => {
@@ -74,7 +83,11 @@ const handleExport = () => {
 }
 
 const handleDelete = () => {
-  deleteMutation.mutate()
+  deleteMutation.mutate(dpdaId.value, {
+    onSuccess: () => {
+      router.push({ name: 'home' })
+    },
+  })
 }
 </script>
 
@@ -83,7 +96,8 @@ const handleDelete = () => {
     :show-sidebar="true"
     :dpda-id="dpdaId"
     :dpda-name="dpda?.name"
-    :is-valid="validationStatus"
+    :is-valid="validationResult?.is_valid ?? null"
+    :can-validate="canValidate"
     current-view="editor"
     @validate="handleValidate"
     @export="handleExport"
@@ -115,8 +129,12 @@ const handleDelete = () => {
       <Tabs v-model="activeTab" class="w-full">
         <TabsList class="grid w-full grid-cols-3">
           <TabsTrigger value="states" data-testid="tab-states"> States </TabsTrigger>
-          <TabsTrigger value="alphabets" data-testid="tab-alphabets"> Alphabets </TabsTrigger>
-          <TabsTrigger value="transitions" data-testid="tab-transitions"> Transitions </TabsTrigger>
+          <TabsTrigger value="alphabets" data-testid="tab-alphabets" :disabled="!canAccessAlphabets">
+            Alphabets
+          </TabsTrigger>
+          <TabsTrigger value="transitions" data-testid="tab-transitions" :disabled="!canAccessTransitions">
+            Transitions
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="states" class="mt-6">

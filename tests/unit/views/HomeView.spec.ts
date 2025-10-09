@@ -21,6 +21,14 @@ const mockUpdateMutation = {
   error: null,
 }
 
+const mockDeleteMutation = {
+  mutate: vi.fn(),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+}
+
 const mockListQuery = {
   data: {
     dpdas: [
@@ -39,6 +47,7 @@ vi.mock('@/composables/useDPDA', () => ({
   useDPDA: () => ({
     createMutation: mockCreateMutation,
     updateMutation: mockUpdateMutation,
+    deleteMutation: mockDeleteMutation,
     listQuery: mockListQuery,
   }),
 }))
@@ -76,6 +85,9 @@ describe('HomeView', () => {
     mockUpdateMutation.isPending = false
     mockUpdateMutation.isSuccess = false
     mockUpdateMutation.isError = false
+    mockDeleteMutation.isPending = false
+    mockDeleteMutation.isSuccess = false
+    mockDeleteMutation.isError = false
 
     // Create a router for tests
     router = createRouter({
@@ -381,5 +393,85 @@ describe('HomeView', () => {
 
     // Should not navigate to editor
     expect(pushSpy).not.toHaveBeenCalled()
+  })
+
+  // Delete DPDA tests
+  it('should open delete confirmation dialog when delete button clicked', async () => {
+    wrapper = mountComponent()
+
+    const deleteButton = wrapper.find('[data-testid="delete-dpda-1"]')
+    await deleteButton.trigger('click')
+
+    expect(wrapper.find('[data-testid="delete-dpda-dialog"]').exists()).toBe(true)
+  })
+
+  it('should display DPDA name in delete confirmation', async () => {
+    wrapper = mountComponent()
+
+    // Click delete button for DPDA 1
+    await wrapper.find('[data-testid="delete-dpda-1"]').trigger('click')
+
+    // Check that dialog shows DPDA name
+    expect(wrapper.text()).toContain('DPDA 1')
+    expect(wrapper.text()).toContain('cannot be undone')
+  })
+
+  it('should call deleteMutation with correct ID when delete confirmed', async () => {
+    wrapper = mountComponent()
+
+    // Open delete dialog for DPDA 1
+    await wrapper.find('[data-testid="delete-dpda-1"]').trigger('click')
+
+    // Click confirm button
+    const confirmButton = wrapper.find('[data-testid="confirm-delete-button"]')
+    await confirmButton.trigger('click')
+
+    expect(mockDeleteMutation.mutate).toHaveBeenCalledWith('1', expect.any(Object))
+  })
+
+  it('should close dialog after successful deletion', async () => {
+    wrapper = mountComponent()
+
+    // Open delete dialog
+    await wrapper.find('[data-testid="delete-dpda-1"]').trigger('click')
+    expect(wrapper.find('[data-testid="delete-dpda-dialog"]').exists()).toBe(true)
+
+    // Simulate successful deletion
+    mockDeleteMutation.isSuccess = true
+    await wrapper.vm.$nextTick()
+
+    // Reset
+    mockDeleteMutation.isSuccess = false
+  })
+
+  it('should stop propagation when delete button clicked', async () => {
+    wrapper = mountComponent()
+
+    // Mock router push to check it's not called
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const deleteButton = wrapper.find('[data-testid="delete-dpda-1"]')
+    await deleteButton.trigger('click')
+
+    // Should not navigate to editor
+    expect(pushSpy).not.toHaveBeenCalled()
+  })
+
+  it('should show loading state during deletion', async () => {
+    wrapper = mountComponent()
+
+    // Open delete dialog
+    await wrapper.find('[data-testid="delete-dpda-1"]').trigger('click')
+
+    // Set loading state
+    mockDeleteMutation.isPending = true
+    await wrapper.vm.$nextTick()
+
+    const confirmButton = wrapper.find('[data-testid="confirm-delete-button"]')
+    expect(confirmButton.attributes('disabled')).toBeDefined()
+    expect(confirmButton.text()).toContain('Deleting')
+
+    // Reset
+    mockDeleteMutation.isPending = false
   })
 })

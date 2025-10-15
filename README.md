@@ -2,6 +2,7 @@
 
 A modern, minimal-dependency Vue 3 + TypeScript single-page application (SPA) for interacting with the DPDA (Deterministic Pushdown Automaton) simulator API.
 
+test
 ## Quick Start
 
 ### Prerequisites

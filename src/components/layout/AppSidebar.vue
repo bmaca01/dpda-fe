@@ -1,17 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Props {
   dpdaId: string
+  dpdaName?: string
   currentView: 'editor' | 'compute' | 'visualize'
   isValid?: boolean | null
   canValidate?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  dpdaName: 'this DPDA',
   isValid: undefined,
   canValidate: true,
 })
@@ -24,12 +34,25 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+// Dialog state
+const isDeleteDialogOpen = ref(false)
+
 const isActive = (view: string) => computed(() => props.currentView === view)
 
 // Compute link should only be accessible when DPDA is valid
 // When isValid is undefined (not provided), allow access for backward compatibility
 // Disable only when explicitly false or null
 const canAccessCompute = computed(() => props.isValid !== false && props.isValid !== null)
+
+// Handle delete confirmation
+const confirmDelete = () => {
+  isDeleteDialogOpen.value = true
+}
+
+const handleDelete = () => {
+  isDeleteDialogOpen.value = false
+  emit('delete')
+}
 </script>
 
 <template>
@@ -107,12 +130,41 @@ const canAccessCompute = computed(() => props.isValid !== false && props.isValid
             variant="outline"
             size="sm"
             class="w-full justify-start text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            @click="emit('delete')"
+            @click="confirmDelete"
           >
             Delete DPDA
           </Button>
         </div>
       </nav>
     </div>
+
+    <!-- Delete DPDA Confirmation Dialog -->
+    <Dialog v-model:open="isDeleteDialogOpen">
+      <DialogContent data-testid="delete-confirmation-dialog">
+        <DialogHeader>
+          <DialogTitle>Delete DPDA</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete "{{ dpdaName }}"? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="cancel-delete-button"
+            @click="isDeleteDialogOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            data-testid="confirm-delete-button"
+            @click="handleDelete"
+          >
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </aside>
 </template>

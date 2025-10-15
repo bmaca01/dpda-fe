@@ -64,6 +64,7 @@ describe('VisualizeView', () => {
         isError: ref(merged.isError),
         error: ref(merged.error),
       },
+      canValidate: ref(true), // Mock canValidate as true for visualization tests
     } as any)
 
     vi.mocked(useVisualization).mockReturnValue({
@@ -128,7 +129,9 @@ describe('VisualizeView', () => {
     it('should extract dpdaId from route params', async () => {
       await createWrapper('my-dpda-id')
       expect(useDPDA).toHaveBeenCalledWith('my-dpda-id')
-      expect(useVisualization).toHaveBeenCalledWith('my-dpda-id')
+      expect(useVisualization).toHaveBeenCalledWith('my-dpda-id', expect.objectContaining({
+        enabled: expect.anything(),
+      }))
     })
   })
 

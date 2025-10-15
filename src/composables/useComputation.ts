@@ -1,3 +1,4 @@
+import type { MaybeRefOrGetter } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computeString, validateDPDA } from '@/api/endpoints/operations'
 import type { ComputeRequest } from '@/api/types'
@@ -9,6 +10,7 @@ import type { ComputeRequest } from '@/api/types'
  * @param dpdaId - Optional DPDA ID. If provided, enables validation query
  * @param options - Optional configuration object
  * @param options.enabled - Override automatic enabling of validateQuery (default: !!dpdaId)
+ *                          Can be a boolean, ref, or computed for reactive enabling
  * @returns Object containing validateQuery and computeMutation
  *
  * @example
@@ -19,13 +21,16 @@ import type { ComputeRequest } from '@/api/types'
  * computeMutation.mutate({ input_string: '001', max_steps: 10000, show_trace: false })
  * ```
  *
- * @example Conditional validation
+ * @example Conditional validation with computed ref
  * ```typescript
- * const canValidate = computed(() => !!dpda.value?.states?.length)
- * const { validateQuery } = useComputation(dpdaId, { enabled: canValidate.value })
+ * const { canValidate } = useDPDA(dpdaId)
+ * const { validateQuery } = useComputation(dpdaId, { enabled: canValidate })
  * ```
  */
-export function useComputation(dpdaId?: string, options?: { enabled?: boolean }) {
+export function useComputation(
+  dpdaId?: string,
+  options?: { enabled?: MaybeRefOrGetter<boolean> },
+) {
   const queryClient = useQueryClient()
 
   // Validation query - checks if DPDA is deterministic

@@ -30,6 +30,7 @@ describe('AppSidebar', () => {
     dpdaId: string
     currentView: 'editor' | 'compute' | 'visualize'
     isValid?: boolean | null
+    dpdaName?: string
   }) => {
     return mount(AppSidebar, {
       props,
@@ -105,14 +106,51 @@ describe('AppSidebar', () => {
     expect(wrapper.emitted('export')).toHaveLength(1)
   })
 
-  it('should emit delete event when delete button is clicked', async () => {
-    const wrapper = createWrapper({ dpdaId: '123', currentView: 'editor' })
+  it('should open confirmation dialog when delete button is clicked', async () => {
+    const wrapper = createWrapper({ dpdaId: '123', currentView: 'editor', dpdaName: 'Test DPDA' })
     const deleteBtn = wrapper.find('[data-testid="action-delete"]')
 
     await deleteBtn.trigger('click')
 
+    // Should NOT emit delete event immediately
+    expect(wrapper.emitted('delete')).toBeUndefined()
+
+    // Should open the confirmation dialog (internal state check)
+    expect(wrapper.vm.isDeleteDialogOpen).toBe(true)
+  })
+
+  it('should close dialog when cancel button is clicked', async () => {
+    const wrapper = createWrapper({ dpdaId: '123', currentView: 'editor', dpdaName: 'Test DPDA' })
+
+    // Open dialog by clicking delete button
+    await wrapper.find('[data-testid="action-delete"]').trigger('click')
+    expect(wrapper.vm.isDeleteDialogOpen).toBe(true)
+
+    // Close dialog programmatically (simulating cancel button click)
+    wrapper.vm.isDeleteDialogOpen = false
+    await wrapper.vm.$nextTick()
+
+    // Should NOT emit delete event
+    expect(wrapper.emitted('delete')).toBeUndefined()
+  })
+
+  it('should emit delete event when confirmed', async () => {
+    const wrapper = createWrapper({ dpdaId: '123', currentView: 'editor', dpdaName: 'Test DPDA' })
+
+    // Open dialog
+    await wrapper.find('[data-testid="action-delete"]').trigger('click')
+    expect(wrapper.vm.isDeleteDialogOpen).toBe(true)
+
+    // Call handleDelete directly (simulating confirm button click)
+    wrapper.vm.handleDelete()
+    await wrapper.vm.$nextTick()
+
+    // Should emit delete event
     expect(wrapper.emitted('delete')).toBeTruthy()
     expect(wrapper.emitted('delete')).toHaveLength(1)
+
+    // Dialog should be closed
+    expect(wrapper.vm.isDeleteDialogOpen).toBe(false)
   })
 
   it('should have navigation landmark for accessibility', () => {

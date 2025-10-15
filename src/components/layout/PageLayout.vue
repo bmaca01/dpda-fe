@@ -41,6 +41,7 @@ const handleDelete = () => emit('delete')
       <AppSidebar
         v-if="showSidebar && dpdaId && currentView"
         :dpda-id="dpdaId"
+        :dpda-name="dpdaName"
         :current-view="currentView"
         :is-valid="isValid"
         :can-validate="canValidate"

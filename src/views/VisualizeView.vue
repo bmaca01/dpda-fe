@@ -13,11 +13,12 @@ const route = useRoute()
 const dpdaId = route.params.id as string
 
 // Fetch DPDA info
-const { getQuery: dpdaQuery } = useDPDA(dpdaId)
+const { getQuery: dpdaQuery, canValidate } = useDPDA(dpdaId)
 const { data: dpda, isLoading, isError, error } = dpdaQuery
 
-// Fetch visualization data
-const { visualizeQuery } = useVisualization(dpdaId)
+// Fetch visualization data - only when DPDA has states + alphabets configured
+// This prevents 400 errors when trying to visualize empty DPDAs
+const { visualizeQuery } = useVisualization(dpdaId, { enabled: canValidate })
 const {
   data: visualizationData,
   isLoading: visualizationLoading,
@@ -29,13 +30,6 @@ const {
 const dpdaName = computed(() => dpda.value?.name ?? 'DPDA')
 const isValid = computed(() => dpda.value?.is_valid ?? null)
 const graphData = computed(() => visualizationData.value?.data)
-
-// Validation should be enabled if states are configured
-// Explicitly convert to boolean to ensure we return true/false, not undefined
-const canValidate = computed(() => {
-  if (!dpda.value) return false
-  return !!(dpda.value.states && dpda.value.states.length > 0)
-})
 
 // Event handlers for PageLayout (placeholders for now)
 const handleValidate = () => {

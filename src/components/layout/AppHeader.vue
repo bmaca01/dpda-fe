@@ -17,9 +17,14 @@ const props = withDefaults(defineProps<Props>(), {
 const showDpdaInfo = computed(() => props.dpdaName !== undefined)
 const showValidationBadge = computed(() => {
   // Only show badge if both dpdaName is present AND isValid is explicitly set (true or false, not null)
-  return props.dpdaName !== undefined && props.isValid !== null && props.isValid !== undefined
+  return (
+    props.dpdaName !== undefined &&
+    props.isValid !== null &&
+    props.isValid !== undefined &&
+    props.isValid !== false
+  )
 })
-const showDpdaLinks = computed(() => props.dpdaId !== undefined)
+//const showDpdaLinks = computed(() => props.dpdaId !== undefined)
 
 const validationBadgeVariant = computed(() => {
   if (props.isValid === null || props.isValid === undefined) return 'secondary'
@@ -73,6 +78,8 @@ const validationBadgeText = computed(() => {
               </RouterLink>
             </li>
 
+            <!-- TODO: add link to AboutView -->
+            <!--
             <template v-if="showDpdaLinks">
               <li>
                 <RouterLink
@@ -105,6 +112,7 @@ const validationBadgeText = computed(() => {
                 </RouterLink>
               </li>
             </template>
+            -->
           </ul>
         </nav>
       </div>

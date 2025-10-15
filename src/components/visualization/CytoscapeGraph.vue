@@ -163,7 +163,7 @@ onUnmounted(() => {
 
     <!-- Empty State -->
     <div
-      v-else-if="!data"
+      v-else-if="!data || !data.elements || data.elements.length === 0"
       class="flex items-center justify-center h-[600px] border rounded-lg bg-muted/10"
     >
       <div class="text-center">

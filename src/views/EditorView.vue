@@ -19,22 +19,10 @@ const dpdaId = computed(() => route.params.id as string)
 const activeTab = ref('states')
 
 // Use composables for DPDA operations
-const { getQuery, deleteMutation } = useDPDA(dpdaId.value)
+const { getQuery, deleteMutation, canValidate } = useDPDA(dpdaId.value)
 
 // Destructure query data
 const { data: dpda, isLoading, isError, error } = getQuery
-
-// Compute whether DPDA has minimum configuration for validation
-// Prevents validation API calls on newly created DPDAs (no states/config)
-const canValidate = computed(() => {
-  if (!dpda.value) return false
-
-  // Require at least states to be configured before attempting validation
-  // Explicitly convert to boolean to ensure we return true/false, not undefined
-  const hasStates = !!(dpda.value.states && dpda.value.states.length > 0)
-
-  return hasStates
-})
 
 // Compute tab accessibility based on DPDA configuration
 const canAccessAlphabets = computed(() => {
@@ -51,8 +39,9 @@ const canAccessTransitions = computed(() => {
 })
 
 // Use conditional enabling for validateQuery
-const { validateQuery } = useComputation(dpdaId.value, { enabled: canValidate.value })
-const { data: validationResult, isLoading: isValidating } = validateQuery
+// Note: canValidate is a computed ref, so we pass canValidate (not canValidate.value)
+const { validateQuery } = useComputation(dpdaId.value, { enabled: canValidate })
+const { data: validationResult } = validateQuery
 
 // Export mutation (operation-specific, not in composable)
 const exportMutation = useMutation({
@@ -129,10 +118,18 @@ const handleDelete = () => {
       <Tabs v-model="activeTab" class="w-full">
         <TabsList class="grid w-full grid-cols-3">
           <TabsTrigger value="states" data-testid="tab-states"> States </TabsTrigger>
-          <TabsTrigger value="alphabets" data-testid="tab-alphabets" :disabled="!canAccessAlphabets">
+          <TabsTrigger
+            value="alphabets"
+            data-testid="tab-alphabets"
+            :disabled="!canAccessAlphabets"
+          >
             Alphabets
           </TabsTrigger>
-          <TabsTrigger value="transitions" data-testid="tab-transitions" :disabled="!canAccessTransitions">
+          <TabsTrigger
+            value="transitions"
+            data-testid="tab-transitions"
+            :disabled="!canAccessTransitions"
+          >
             Transitions
           </TabsTrigger>
         </TabsList>

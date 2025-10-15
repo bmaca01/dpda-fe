@@ -226,4 +226,110 @@ describe('useDPDA Composable', () => {
       expect(mutationConfig).toHaveProperty('onSuccess')
     })
   })
+
+  describe('canValidate', () => {
+    it('should return false when DPDA data is not loaded', () => {
+      const mockQuery = {
+        data: { value: undefined },
+        isLoading: false,
+        isError: false,
+        error: null,
+      }
+
+      vi.mocked(useQuery).mockReturnValue(mockQuery as any)
+
+      const { canValidate } = useDPDA('123')
+
+      expect(canValidate.value).toBe(false)
+    })
+
+    it('should return false when DPDA has no states', () => {
+      const mockQuery = {
+        data: {
+          value: {
+            id: '123',
+            name: 'Test DPDA',
+            // No states
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+      }
+
+      vi.mocked(useQuery).mockReturnValue(mockQuery as any)
+
+      const { canValidate } = useDPDA('123')
+
+      expect(canValidate.value).toBe(false)
+    })
+
+    it('should return false when DPDA has states but no alphabets', () => {
+      const mockQuery = {
+        data: {
+          value: {
+            id: '123',
+            name: 'Test DPDA',
+            states: ['q0', 'q1'],
+            // No alphabets
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+      }
+
+      vi.mocked(useQuery).mockReturnValue(mockQuery as any)
+
+      const { canValidate } = useDPDA('123')
+
+      expect(canValidate.value).toBe(false)
+    })
+
+    it('should return false when DPDA has states and input alphabet but no stack alphabet', () => {
+      const mockQuery = {
+        data: {
+          value: {
+            id: '123',
+            name: 'Test DPDA',
+            states: ['q0', 'q1'],
+            input_alphabet: ['0', '1'],
+            // No stack alphabet
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+      }
+
+      vi.mocked(useQuery).mockReturnValue(mockQuery as any)
+
+      const { canValidate } = useDPDA('123')
+
+      expect(canValidate.value).toBe(false)
+    })
+
+    it('should return true when DPDA has states and both alphabets', () => {
+      const mockQuery = {
+        data: {
+          value: {
+            id: '123',
+            name: 'Test DPDA',
+            states: ['q0', 'q1'],
+            input_alphabet: ['0', '1'],
+            stack_alphabet: ['$', 'A'],
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+      }
+
+      vi.mocked(useQuery).mockReturnValue(mockQuery as any)
+
+      const { canValidate } = useDPDA('123')
+
+      expect(canValidate.value).toBe(true)
+    })
+  })
 })

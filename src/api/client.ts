@@ -1,7 +1,10 @@
 import axios from 'axios'
+import { getSessionId } from '@/lib/session'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : 'http://localhost:8000',
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -11,7 +14,12 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add any request modifications here (e.g., auth tokens)
+    // Add session ID to all requests (unless already set)
+    if (!config.headers['X-Session-ID']) {
+      const sessionId = getSessionId()
+      config.headers['X-Session-ID'] = sessionId
+    }
+
     return config
   },
   (error) => {

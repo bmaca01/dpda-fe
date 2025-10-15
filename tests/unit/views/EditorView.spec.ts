@@ -148,7 +148,9 @@ describe('EditorView', () => {
         id: 'test-dpda-1',
         name: 'Test DPDA',
         description: 'Test description',
-        states: ['q0', 'q1'], // Add states so validation can be triggered
+        states: ['q0', 'q1'],
+        input_alphabet: ['0', '1'],
+        stack_alphabet: ['$', 'A'],
       }
 
       const mockValidation = {
@@ -179,7 +181,9 @@ describe('EditorView', () => {
         id: 'test-dpda-1',
         name: 'Test DPDA',
         description: 'Test description',
-        states: ['q0', 'q1'], // Add states so validation can be triggered
+        states: ['q0', 'q1'],
+        input_alphabet: ['0', '1'],
+        stack_alphabet: ['$', 'A'],
       }
 
       const mockValidation = {

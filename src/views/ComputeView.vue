@@ -15,7 +15,7 @@ const route = useRoute()
 const dpdaId = route.params.id as string
 
 // Fetch DPDA info
-const { getQuery: dpdaQuery } = useDPDA(dpdaId)
+const { getQuery: dpdaQuery, canValidate } = useDPDA(dpdaId)
 const { data: dpda, isLoading, isError, error } = dpdaQuery
 
 // Get computation functionality
@@ -30,13 +30,6 @@ const isValid = computed(() => validationResult.value?.is_valid ?? null)
 const hasTrace = computed(() => {
   const result = computeMutation.data.value
   return !!result?.trace && Array.isArray(result.trace) && result.trace.length > 0
-})
-
-// ComputeView requires valid DPDA to access, so validation button should be enabled when states exist
-// Explicitly convert to boolean to ensure we return true/false, not undefined
-const canValidate = computed(() => {
-  if (!dpda.value) return false
-  return !!(dpda.value.states && dpda.value.states.length > 0)
 })
 
 // Event handlers for PageLayout (these would be implemented but are stubs for now)

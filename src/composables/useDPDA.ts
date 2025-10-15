@@ -3,6 +3,7 @@
  * Uses TanStack Query for data fetching and caching
  */
 
+import { computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { createDPDA, listDPDAs, getDPDA, deleteDPDA, updateDPDA } from '@/api/endpoints/dpda'
 import type {
@@ -52,6 +53,28 @@ export function useDPDA(id?: string | undefined) {
     enabled: !!id, // Only fetch if ID is provided
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+  })
+
+  /**
+   * Computed property to determine if DPDA can be validated
+   * Requires states and both alphabets to be configured
+   */
+  const canValidate = computed(() => {
+    const dpda = getQuery.data.value
+    if (!dpda) return false
+
+    // Require states and alphabets to be configured before attempting validation
+    // Explicitly convert to boolean to ensure we return true/false, not undefined
+    const hasConfig = !!(
+      dpda.states &&
+      dpda.states.length > 0 &&
+      dpda.input_alphabet &&
+      dpda.input_alphabet.length > 0 &&
+      dpda.stack_alphabet &&
+      dpda.stack_alphabet.length > 0
+    )
+
+    return hasConfig
   })
 
   /**
@@ -114,5 +137,6 @@ export function useDPDA(id?: string | undefined) {
     updateMutation,
     prefetchDPDA,
     invalidateAllDPDAs,
+    canValidate,
   }
 }
